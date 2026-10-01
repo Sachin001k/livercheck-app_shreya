@@ -44,7 +44,7 @@ packages `supabase_flutter`, `url_launcher`.
 | Special surveys (announced later) | 🟡 Tables ready · no app screen yet |
 | Phone OTP / Google sign-in | 🟡 Code ready · hidden until configured |
 | Translations for new screens | ⬜ English only |
-| Git / GitHub | 🟡 Local git repo on `main` (initial commit) · GitHub push pending `gh auth login` |
+| Git / GitHub | ✅ **Public** repo [Sachin001k/livercheck-app_shreya](https://github.com/Sachin001k/livercheck-app_shreya), branch `main` |
 
 **Supabase migrations applied (last checked 30 Sep 2026):** 1 ✅ · 2 ✅ · 3 ⬜ · 4 ⬜
 
@@ -67,6 +67,9 @@ flutter run -d web-server --web-port 8080 --dart-define-from-file=env.json
   (Cmd+Shift+R).
 
 Checks: `flutter analyze lib test` (must be clean) · `flutter test` (35 tests, all passing).
+
+Save work to GitHub: `git add . && git commit -m "What changed" && git push`.
+The repo is **public** — never commit `env.json` or real keys (check `git status` before committing).
 
 ---
 
@@ -368,7 +371,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ⬜ Consent screen, privacy policy (DPDP Act), delete-my-account
 - ⬜ App icon, splash screen, real share link, store listings
 - ✅ Local git repo created (`main`, initial commit); `env.json` and `livrcheck_flutter/` excluded
-- ⬜ Push to GitHub (private repo `livrcheck-app`)
+- ✅ Pushed to GitHub: https://github.com/Sachin001k/livercheck-app_shreya (public)
 
 ---
 
