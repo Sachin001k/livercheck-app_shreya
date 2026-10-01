@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
 import 'assess.dart';
@@ -307,6 +308,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
             selected: _a[q.id] == o.v,
             onTap: () async {
               if (_advancing) return;
+              HapticFeedback.selectionClick();
               setState(() => _a[q.id] = o.v);
               _advancing = true;
               await Future.delayed(

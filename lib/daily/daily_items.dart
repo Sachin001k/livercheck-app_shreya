@@ -63,7 +63,7 @@ final List<DailyItem> dailyItems = [
     emoji: '🍽️',
     title: 'Food eaten',
     unit: 'kcal',
-    min: 500,
+    min: 0,
     max: 4000,
     step: 50,
     tapStep: 100,
@@ -148,12 +148,14 @@ Map<String, double?> valuesFromLog(DailyLog? log) => {
   'sugar': log?.sugaryItems?.toDouble(),
 };
 
-DailyLog logFromValues(Map<String, double?> v) => DailyLog(
-  waterMl: v['water'] == null ? null : (v['water']! * 1000).round(),
-  calories: v['calories']?.round(),
-  exerciseMin: v['exercise']?.round(),
-  steps: v['steps']?.round(),
-  sleepHours: v['sleep'],
-  fruitVeg: v['fruitVeg']?.round(),
-  sugaryItems: v['sugar']?.round(),
-);
+DailyLog logFromValues(Map<String, double?> v, {Map<String, int>? meals}) =>
+    DailyLog(
+      waterMl: v['water'] == null ? null : (v['water']! * 1000).round(),
+      calories: v['calories']?.round(),
+      exerciseMin: v['exercise']?.round(),
+      steps: v['steps']?.round(),
+      sleepHours: v['sleep'],
+      fruitVeg: v['fruitVeg']?.round(),
+      sugaryItems: v['sugar']?.round(),
+      meals: meals,
+    );

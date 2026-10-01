@@ -1,18 +1,27 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
 import '../streak.dart';
 import '../survey/health_ui.dart';
 import '../theme.dart';
+import '../widgets/friendly_state.dart';
+import '../widgets/skeleton.dart';
 import 'daily_items.dart';
+import 'meal_catalog.dart';
+import 'meal_picker_sheet.dart';
 import 'daily_store.dart';
 import 'daily_targets.dart';
 
-/// Height shared with the card beside it on the Home page.
-const double dailyCardHeight = 440;
+/// Height shared with the card beside it on the Home page. Grows with the
+/// phone's text size setting so large text doesn't get cut off.
+double dailyCardHeight(BuildContext context) {
+  final scale = MediaQuery.textScalerOf(context).scale(16) / 16;
+  return 440 * scale.clamp(1.0, 1.6);
+}
 
 /// Home page daily check-in: check in (+1), then a swipeable card-by-card
 /// log (+10, +20 bonus at 90+), with animated score, coins and streak.
@@ -37,6 +46,9 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
   final _pages = PageController();
   int _page = 0;
   Map<String, double?> _values = valuesFromLog(null);
+
+  /// Foods picked with the meal picker for today's log.
+  Map<String, int> _meals = {};
 
   /// Set right after coins are earned, to play the celebration.
   ({int coins, String message})? _celebration;
@@ -106,6 +118,7 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
     setState(() => _busy = true);
     try {
       final earned = await DailyStore.checkIn();
+      HapticFeedback.mediumImpact();
       if (earned) _celebrate(coinsForCheckin, 'Checked in!');
     } catch (e) {
       _showError(e);
@@ -117,6 +130,7 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
   void _startLog() {
     setState(() {
       _values = valuesFromLog(_summary?.today?.log);
+      _meals = {...?_summary?.today?.log?.meals};
       _phase = _Phase.logging;
       _page = 0;
     });
@@ -130,11 +144,34 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
     );
   }
 
+  /// Opens the meal picker and fills calories from it. Also fills fruit &
+  /// veg and sweets if the user hasn't set those yet.
+  Future<void> _pickMeals() async {
+    final picked = await showMealPicker(
+      context,
+      initial: _meals,
+      targetKcal: _targets.calories,
+    );
+    if (picked == null || !mounted) return;
+    final totals = mealTotals(picked);
+    setState(() {
+      _meals = picked;
+      _values['calories'] = totals.kcal.toDouble().clamp(0, 4000);
+      if (_values['fruitVeg'] == null && totals.fruitVeg > 0) {
+        _values['fruitVeg'] = totals.fruitVeg.clamp(0, 10).toDouble();
+      }
+      if (_values['sugar'] == null) {
+        _values['sugar'] = totals.sweets.clamp(0, 6).toDouble();
+      }
+    });
+  }
+
   Future<void> _save() async {
     setState(() => _busy = true);
     try {
+      HapticFeedback.lightImpact();
       final outcome = await DailyStore.saveLog(
-        logFromValues(_values),
+        logFromValues(_values, meals: _meals),
         _targets,
       );
       if (!mounted) return;
@@ -155,7 +192,7 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: dailyCardHeight,
+      height: dailyCardHeight(context),
       child: SurfaceCard(
         padding: EdgeInsets.zero,
         child: ClipRRect(
@@ -176,20 +213,30 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
   }
 
   Widget _loadingOrError() {
-    if (_error == null) return const Center(child: CircularProgressIndicator());
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text('😕', style: TextStyle(fontSize: 36)),
-          const SizedBox(height: 8),
-          Text(
-            'Could not load today.\n${AuthService.describeError(_error!, '')}',
-            textAlign: TextAlign.center,
-          ),
-          TextButton(onPressed: _load, child: const Text('Retry')),
-        ],
-      ),
+    final error = _error;
+    if (error != null) {
+      return Center(child: FriendlyState.error(error, onRetry: _load));
+    }
+    // Skeleton shaped like the card: header, big circle, button.
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Skeleton(width: 140, height: 22),
+            Spacer(),
+            Skeleton(width: 54, height: 26, radius: 99),
+            SizedBox(width: 6),
+            Skeleton(width: 54, height: 26, radius: 99),
+          ],
+        ),
+        Expanded(
+          child: Center(child: Skeleton(width: 130, height: 130, radius: 99)),
+        ),
+        Skeleton(height: 14, width: 180),
+        SizedBox(height: 12),
+        Skeleton(height: 48, radius: 24),
+      ],
     );
   }
 
@@ -408,6 +455,8 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
               value: _values[dailyItems[i].key],
               targets: _targets,
               onChanged: (v) => setState(() => _values[dailyItems[i].key] = v),
+              mealCount: _meals.values.fold(0, (a, b) => a + b),
+              onPickMeals: dailyItems[i].key == 'calories' ? _pickMeals : null,
             ),
           ),
         ),
@@ -455,11 +504,17 @@ class _ItemPage extends StatelessWidget {
   final DailyTargets targets;
   final ValueChanged<double?> onChanged;
 
+  /// Only for the calories item: opens the meal picker.
+  final VoidCallback? onPickMeals;
+  final int mealCount;
+
   const _ItemPage({
     required this.item,
     required this.value,
     required this.targets,
     required this.onChanged,
+    this.onPickMeals,
+    this.mealCount = 0,
   });
 
   @override
@@ -506,7 +561,10 @@ class _ItemPage extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               IconButton.filledTonal(
-                onPressed: () => set(v - item.tapStep),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  set(v - item.tapStep);
+                },
                 icon: const Icon(Icons.remove),
               ),
               Expanded(
@@ -538,7 +596,10 @@ class _ItemPage extends StatelessWidget {
                 ),
               ),
               IconButton.filledTonal(
-                onPressed: () => set(v + item.tapStep),
+                onPressed: () {
+                  HapticFeedback.selectionClick();
+                  set(v + item.tapStep);
+                },
                 icon: const Icon(Icons.add),
               ),
             ],
@@ -574,7 +635,22 @@ class _ItemPage extends StatelessWidget {
           const SizedBox(height: 4),
           Row(
             children: [
-              if (item.hint != null)
+              if (onPickMeals != null)
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: FilledButton.tonalIcon(
+                      onPressed: onPickMeals,
+                      icon: const Text('🍽️'),
+                      label: Text(
+                        mealCount == 0
+                            ? 'Pick what you ate'
+                            : '$mealCount foods picked',
+                      ),
+                    ),
+                  ),
+                )
+              else if (item.hint != null)
                 Expanded(
                   child: Text(
                     item.hint!,

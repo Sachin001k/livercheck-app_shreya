@@ -67,7 +67,9 @@ class SurfaceCard extends StatelessWidget {
           ),
         ],
       ),
-      child: child,
+      // Transparent Material so ListTiles / InkWells inside show their
+      // ripples (the white decoration would otherwise hide them).
+      child: Material(type: MaterialType.transparency, child: child),
     );
   }
 }

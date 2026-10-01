@@ -87,4 +87,25 @@ void main() {
       await tester.pumpAndSettle();
     }
   });
+
+  testWidgets('home works with large phone text (no overflow)', (tester) async {
+    tester.view.physicalSize = const Size(390, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+
+    final profile = Profile(
+      id: '1', fullName: 'Test User', age: 40, gender: null, heightCm: null,
+      weightKg: null, preferredLanguage: AppLanguage.en, createdAt: DateTime(2026, 9, 1),
+    );
+    await tester.pumpWidget(MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(context).copyWith(textScaler: const TextScaler.linear(1.5)),
+        child: LanguageScope(notifier: appLanguage, child: child!),
+      ),
+      home: Scaffold(body: HomeScreen(profile: profile, onStartCheck: () {})),
+    ));
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(tester.takeException(), isNull);
+    expect(find.text('Check your liver risk'), findsOneWidget);
+  });
 }

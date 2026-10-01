@@ -3,11 +3,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_language.dart';
 import 'config.dart';
+import 'onboarding/onboarding_prefs.dart';
 import 'screens/auth_gate.dart';
 import 'theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await OnboardingPrefs.init();
   if (isSupabaseConfigured) {
     await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
   }

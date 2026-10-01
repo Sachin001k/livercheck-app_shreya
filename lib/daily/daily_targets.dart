@@ -81,6 +81,9 @@ class DailyLog {
   final int? fruitVeg;
   final int? sugaryItems;
 
+  /// Foods picked in the meal picker ({food id: portions}); optional.
+  final Map<String, int>? meals;
+
   const DailyLog({
     this.waterMl,
     this.calories,
@@ -89,6 +92,7 @@ class DailyLog {
     this.sleepHours,
     this.fruitVeg,
     this.sugaryItems,
+    this.meals,
   });
 
   bool get isEmpty =>
@@ -108,6 +112,11 @@ class DailyLog {
     sleepHours: (m['sleep_hours'] as num?)?.toDouble(),
     fruitVeg: m['fruit_veg'] as int?,
     sugaryItems: m['sugary_items'] as int?,
+    meals: m['meals'] == null
+        ? null
+        : (m['meals'] as Map).map(
+            (k, v) => MapEntry(k as String, (v as num).toInt()),
+          ),
   );
 
   Map<String, dynamic> toMap() => {
@@ -118,6 +127,8 @@ class DailyLog {
     'sleep_hours': sleepHours,
     'fruit_veg': fruitVeg,
     'sugary_items': sugaryItems,
+    // Only sent when used, so saving still works before migration 5.
+    if (meals != null && meals!.isNotEmpty) 'meals': meals,
   };
 }
 

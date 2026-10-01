@@ -25,84 +25,97 @@ class HomeScreen extends StatelessWidget {
     final textTheme = Theme.of(context).textTheme;
     final firstName = (profile.fullName ?? '').trim().split(' ').first;
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Text(
-            '${context.t('greeting')}, $firstName 👋',
-            style: textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          // Side by side on wide screens, stacked on phones.
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final check = _CheckCard(onStart: onStartCheck);
-              final daily = DailyCheckinCard(profile: profile);
-              if (constraints.maxWidth < 620) {
-                return Column(
-                  children: [check, const SizedBox(height: 16), daily],
-                );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: check),
-                  const SizedBox(width: 16),
-                  Expanded(child: daily),
-                ],
-              );
-            },
-          ),
-        ),
-        _SectionTitle(context.t('foodSectionTitle')),
-        SizedBox(
-          height: 210,
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            scrollDirection: Axis.horizontal,
-            itemCount: foodTips.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (context, i) => _FoodCard(tip: foodTips[i]),
-          ),
-        ),
-        _SectionTitle(context.t('tipsSectionTitle')),
-        for (final tip in healthTips)
+    return RefreshIndicator(
+      // Reloads every card that listens for saved data.
+      onRefresh: () async {
+        DataService.changes.value++;
+        await Future<void>.delayed(const Duration(milliseconds: 600));
+      },
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-            child: _HealthTipCard(tip: tip),
-          ),
-        _SectionTitle(context.t('faqSectionTitle')),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          child: Card(
-            margin: EdgeInsets.zero,
-            clipBehavior: Clip.antiAlias,
-            child: Column(
-              children: [
-                for (final faq in faqs)
-                  ExpansionTile(
-                    shape: const Border(),
-                    title: Text(
-                      faq.question,
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                    expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                    children: [Text(faq.answer)],
-                  ),
-              ],
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              '${context.t('greeting')}, $firstName 👋',
+              style: textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 24),
-      ],
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            // Side by side on wide screens, stacked on phones.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final check = _CheckCard(onStart: onStartCheck);
+                final daily = DailyCheckinCard(profile: profile);
+                if (constraints.maxWidth < 620) {
+                  return Column(
+                    children: [check, const SizedBox(height: 16), daily],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: check),
+                    const SizedBox(width: 16),
+                    Expanded(child: daily),
+                  ],
+                );
+              },
+            ),
+          ),
+          _SectionTitle(context.t('foodSectionTitle')),
+          SizedBox(
+            // Grows with the phone's text size so card text isn't cut off.
+            height:
+                210 *
+                (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(
+                  1.0,
+                  1.7,
+                ),
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              scrollDirection: Axis.horizontal,
+              itemCount: foodTips.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, i) => _FoodCard(tip: foodTips[i]),
+            ),
+          ),
+          _SectionTitle(context.t('tipsSectionTitle')),
+          for (final tip in healthTips)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+              child: _HealthTipCard(tip: tip),
+            ),
+          _SectionTitle(context.t('faqSectionTitle')),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Card(
+              margin: EdgeInsets.zero,
+              clipBehavior: Clip.antiAlias,
+              child: Column(
+                children: [
+                  for (final faq in faqs)
+                    ExpansionTile(
+                      shape: const Border(),
+                      title: Text(
+                        faq.question,
+                        style: const TextStyle(fontWeight: FontWeight.w500),
+                      ),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                      children: [Text(faq.answer)],
+                    ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 }
@@ -166,7 +179,7 @@ class _CheckCardState extends State<_CheckCard>
       '🍬 Sugar',
     ];
     return Container(
-      height: dailyCardHeight,
+      height: dailyCardHeight(context),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(

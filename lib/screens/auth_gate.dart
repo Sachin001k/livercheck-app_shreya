@@ -4,14 +4,20 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../app_language.dart';
+import '../onboarding/consent_screen.dart';
+import '../onboarding/onboarding_prefs.dart';
+import '../onboarding/welcome_screen.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
+import '../theme.dart';
 import 'login_screen.dart';
 import 'main_shell.dart';
 import 'profile_setup_screen.dart';
 
 /// Decides what the user sees:
+///   first launch on this device → [WelcomeScreen]
 ///   signed out                  → [LoginScreen]
+///   signed in, no consent yet   → [ConsentScreen]
 ///   signed in, profile missing  → [ProfileSetupScreen]
 ///   signed in, profile complete → [MainShell]
 class AuthGate extends StatefulWidget {
@@ -24,6 +30,7 @@ class AuthGate extends StatefulWidget {
 class _AuthGateState extends State<AuthGate> {
   late final StreamSubscription<AuthState> _subscription;
   Session? _session = AuthService.currentSession;
+  bool _seenWelcome = OnboardingPrefs.seenWelcome;
 
   @override
   void initState() {
@@ -66,7 +73,8 @@ class _AuthGateState extends State<AuthGate> {
               final errorText = context.t('genericError');
               if (controller.text.length < 6) {
                 messenger.showSnackBar(
-                    SnackBar(content: Text(context.t('passwordLengthError'))));
+                  SnackBar(content: Text(context.t('passwordLengthError'))),
+                );
                 return;
               }
               try {
@@ -74,8 +82,11 @@ class _AuthGateState extends State<AuthGate> {
                 messenger.showSnackBar(SnackBar(content: Text(updatedText)));
                 if (dialogContext.mounted) Navigator.pop(dialogContext);
               } catch (e) {
-                messenger.showSnackBar(SnackBar(
-                    content: Text(AuthService.describeError(e, errorText))));
+                messenger.showSnackBar(
+                  SnackBar(
+                    content: Text(AuthService.describeError(e, errorText)),
+                  ),
+                );
               }
             },
             child: Text(context.t('save')),
@@ -89,7 +100,17 @@ class _AuthGateState extends State<AuthGate> {
   @override
   Widget build(BuildContext context) {
     final session = _session;
-    if (session == null) return const LoginScreen();
+    if (session == null) {
+      if (!_seenWelcome) {
+        return WelcomeScreen(
+          onDone: () {
+            OnboardingPrefs.markWelcomeSeen();
+            setState(() => _seenWelcome = true);
+          },
+        );
+      }
+      return const LoginScreen();
+    }
     // Keyed by user so switching accounts reloads everything.
     return _ProfileGate(key: ValueKey(session.user.id));
   }
@@ -133,17 +154,65 @@ class _ProfileGateState extends State<_ProfileGate> {
         // On reload, keep showing the previous profile instead of a spinner.
         if (snapshot.connectionState != ConnectionState.done &&
             !snapshot.hasData) {
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+          return const _Splash();
         }
         if (snapshot.hasError) {
           return _LoadError(error: snapshot.error!, onRetry: _reload);
         }
         final profile = snapshot.data;
-        if (profile == null || !profile.isComplete) {
+        if (profile == null || !profile.hasConsented) {
+          return ConsentScreen(onAccepted: _reload);
+        }
+        if (!profile.isComplete) {
           return ProfileSetupScreen(initial: profile, onSaved: _reload);
         }
         return MainShell(profile: profile, onProfileChanged: _reload);
       },
+    );
+  }
+}
+
+/// Branded loading screen while the profile loads after sign-in.
+class _Splash extends StatelessWidget {
+  const _Splash();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(gradient: tealGradient),
+        alignment: Alignment.center,
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.85, end: 1),
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeOutBack,
+          builder: (_, s, child) => Transform.scale(scale: s, child: child),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('🩺', style: TextStyle(fontSize: 64)),
+              SizedBox(height: 12),
+              Text(
+                'LivrCheck',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 24),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 3,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -165,8 +234,10 @@ class _LoadError extends StatelessWidget {
             children: [
               const Icon(Icons.cloud_off, size: 48, color: Colors.black38),
               const SizedBox(height: 12),
-              Text(context.t('loadProfileError'),
-                  style: Theme.of(context).textTheme.titleMedium),
+              Text(
+                context.t('loadProfileError'),
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
               const SizedBox(height: 8),
               // Most often: the migration in supabase/migrations/ hasn't been run yet.
               Text(

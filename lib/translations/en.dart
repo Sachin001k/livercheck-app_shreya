@@ -231,4 +231,54 @@ const Map<String, String> en = {
       'especially if you have a medical condition.',
   'close': 'Close',
   'viewDetails': 'View details',
+
+  // ── Welcome slides ──
+  'welcomeSkip': 'Skip',
+  'welcomeNext': 'Next',
+  'welcomeStart': 'Get started',
+  'welcome1Title': 'Know your liver',
+  'welcome1Body':
+      'A free 2-minute check of your liver, heart, kidneys, lungs and blood '
+      'sugar. No blood report needed.',
+  'welcome2Title': 'Build healthy days',
+  'welcome2Body':
+      'Check in every day and log water, food, exercise and sleep against '
+      'goals made just for you.',
+  'welcome3Title': 'Earn coins as you go',
+  'welcome3Body':
+      '+1 for checking in, +10 for your daily log and +20 for a 90+ day. '
+      'Keep your streak alive!',
+  'welcome4Title': 'Your data stays yours',
+  'welcome4Body':
+      'Only you can see your health information, and we never sell it. '
+      'LivrCheck is a screening tool, not a diagnosis.',
+
+  // ── Consent ──
+  'consentTitle': 'Before we start',
+  'consentIntro': 'Please read how LivrCheck uses your information.',
+  'consentCollectTitle': 'What we store',
+  'consentCollectBody':
+      'Your profile (name, age, height, weight), health check answers and '
+      'results, and your daily logs.',
+  'consentWhyTitle': 'Why',
+  'consentWhyBody':
+      'Only to show your results, track your progress and personalise your '
+      'goals.',
+  'consentWhoTitle': 'Who can see it',
+  'consentWhoBody':
+      'Only you. It is stored securely and is never sold or shared with '
+      'advertisers.',
+  'consentRightsTitle': 'Your choices',
+  'consentRightsBody':
+      'You can edit your profile any time and ask us to delete your account '
+      'and all your data.',
+  'consentNotDiagnosis':
+      'I understand LivrCheck is a screening tool and does not replace a '
+      'doctor',
+  'consentStore':
+      'I agree to LivrCheck storing my health information as described',
+  'consentReadPolicy': 'Read the full privacy policy',
+  'consentAgree': 'I agree, continue',
+  'consentSaveError': 'Could not save your consent.',
+  'privacyTitle': 'Privacy policy',
 };

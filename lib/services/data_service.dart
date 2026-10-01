@@ -4,6 +4,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../fib4.dart';
 import '../translations.dart';
 
+/// Bump when the consent text changes, so users are asked to agree again.
+const String currentConsentVersion = 'v1';
+
 /// A row of the `profiles` table (see supabase/migrations/).
 class Profile {
   final String id;
@@ -15,6 +18,10 @@ class Profile {
   final AppLanguage preferredLanguage;
   final DateTime createdAt;
 
+  /// When the user accepted the consent screen, and which version.
+  final DateTime? consentAt;
+  final String? consentVersion;
+
   const Profile({
     required this.id,
     required this.fullName,
@@ -24,7 +31,12 @@ class Profile {
     required this.weightKg,
     required this.preferredLanguage,
     required this.createdAt,
+    this.consentAt,
+    this.consentVersion,
   });
+
+  /// True once the user has accepted the current consent text.
+  bool get hasConsented => consentAt != null && consentVersion == currentConsentVersion;
 
   /// Name and age are required before the user can reach the home page.
   bool get isComplete => (fullName?.trim().isNotEmpty ?? false) && age != null;
@@ -48,6 +60,10 @@ class Profile {
         orElse: () => AppLanguage.en,
       ),
       createdAt: DateTime.parse(map['created_at'] as String),
+      consentAt: map['consent_at'] == null
+          ? null
+          : DateTime.parse(map['consent_at'] as String),
+      consentVersion: map['consent_version'] as String?,
     );
   }
 }
@@ -115,6 +131,17 @@ class DataService {
       'updated_at': DateTime.now().toUtc().toIso8601String(),
     });
     changes.value++;
+  }
+
+  /// Records that the user accepted the current consent text.
+  static Future<void> saveConsent() async {
+    final id = _userId;
+    if (id == null) return;
+    await _db.from('profiles').upsert({
+      'id': id,
+      'consent_at': DateTime.now().toUtc().toIso8601String(),
+      'consent_version': currentConsentVersion,
+    });
   }
 
   /// Updates only the body measurements that are given (from the health

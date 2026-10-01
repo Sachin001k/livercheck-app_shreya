@@ -34,19 +34,23 @@ packages `supabase_flutter`, `url_launcher`.
 
 | Area | Status |
 |---|---|
+| Welcome slides (first launch) | ✅ Built |
+| Consent screen + privacy policy | ✅ Built · policy is a draft |
 | Login (email + password) | ✅ Working with Supabase Auth |
 | Profile setup after sign-up | ✅ Working |
-| Home: health check card + daily check-in card | ✅ Built · needs migrations 3 & 4 run |
+| Home: health check card + daily check-in card | ✅ Built |
+| Meal picker for calories | ✅ Built |
+| Polish: skeletons, friendly errors, large text, haptics | ✅ Built |
 | Home: food cards with detail pop-ups, tips, FAQ | ✅ Built · dummy content |
 | Health check survey + results | ✅ Built · saving confirmed (bug fixed) |
 | Profile: score, coins, streak, Every day, badges | ✅ Built |
-| Coins & reward rules (server-checked) | ✅ Built · needs migration 4 run |
+| Coins & reward rules (server-checked) | ✅ Built |
 | Special surveys (announced later) | 🟡 Tables ready · no app screen yet |
 | Phone OTP / Google sign-in | 🟡 Code ready · hidden until configured |
 | Translations for new screens | ⬜ English only |
 | Git / GitHub | ✅ **Public** repo [Sachin001k/livercheck-app_shreya](https://github.com/Sachin001k/livercheck-app_shreya), branch `main` |
 
-**Supabase migrations applied (last checked 30 Sep 2026):** 1 ✅ · 2 ✅ · 3 ⬜ · 4 ⬜
+**Supabase migrations applied (last checked 1 Oct 2026):** 1 ✅ · 2 ✅ · 3 ✅ · 4 ✅ · 5 ✅
 
 ---
 
@@ -66,7 +70,7 @@ flutter run -d web-server --web-port 8080 --dart-define-from-file=env.json
 - After big changes, stop (`q`), run again, and hard-reload the browser
   (Cmd+Shift+R).
 
-Checks: `flutter analyze lib test` (must be clean) · `flutter test` (35 tests, all passing).
+Checks: `flutter analyze lib test` (must be clean) · `flutter test` (41 tests, all passing).
 
 Save work to GitHub: `git add . && git commit -m "What changed" && git push`.
 The repo is **public** — never commit `env.json` or real keys (check `git status` before committing).
@@ -93,8 +97,12 @@ Supabase → **SQL Editor** → New query → paste a file → **Run**. Run each
 |---|---|---|---|
 | 1 | `20260929120000_initial_schema.sql` | `profiles` (+ auto-create trigger, email/phone sync), `assessments`, `daily_activity`, `survey_responses` | ✅ |
 | 2 | `20260930120000_survey_results_and_habits.sql` | `survey_responses.result` + `.tier`, `daily_habits` (now unused) | ✅ |
-| 3 | `20260930150000_daily_checkins_and_coins.sql` | `daily_checkins`, `coin_events` | ⬜ |
-| 4 | `20260930180000_rewards_and_special_surveys.sql` | `reward_rules`, `special_surveys`, `special_survey_responses`, `coin_balances` view, `award_coins` trigger | ⬜ |
+| 3 | `20260930150000_daily_checkins_and_coins.sql` | `daily_checkins`, `coin_events` | ✅ |
+| 4 | `20260930180000_rewards_and_special_surveys.sql` | `reward_rules`, `special_surveys`, `special_survey_responses`, `coin_balances` view, `award_coins` trigger | ✅ |
+| 5 | `20261001120000_consent_and_meals.sql` | `profiles.consent_at` + `consent_version`, `daily_checkins.meals` | ✅ |
+
+> Without migration 5, signed-in users get stuck on the consent screen
+> ("Could not save your consent") because the consent columns don't exist.
 
 ### 4.3 Supabase dashboard settings
 - **Authentication → URL Configuration:** Site URL `http://localhost:8080`;
@@ -111,12 +119,15 @@ Supabase → **SQL Editor** → New query → paste a file → **Run**. Run each
 
 ### 5.1 App flow
 ```
-main.dart ── Supabase.initialize (if env present) ── LivrCheckApp
+main.dart ── OnboardingPrefs.init ── Supabase.initialize (if env present) ── LivrCheckApp
    └─ LanguageScope (app-wide language, above the Navigator)
        └─ AuthGate
-           ├─ signed out ............ LoginScreen
-           ├─ no/incomplete profile . ProfileSetupScreen
-           └─ ready ................. MainShell (bottom tabs)
+           ├─ first launch (device) .. WelcomeScreen (4 slides)
+           ├─ signed out ............. LoginScreen
+           ├─ loading profile ........ branded splash
+           ├─ no consent (or old) .... ConsentScreen
+           ├─ incomplete profile ..... ProfileSetupScreen
+           └─ ready .................. MainShell (bottom tabs)
                                         ├─ Home     HomeScreen
                                         ├─ Check    HealthSurveyScreen
                                         └─ Profile  ProfileScreen
@@ -158,7 +169,15 @@ main.dart ── Supabase.initialize (if env present) ── LivrCheckApp
 | `lib/daily/daily_targets.dart` | Personal daily targets + day scoring + coin constants |
 | `lib/daily/daily_items.dart` | The 7 daily log items (ranges, steps, goals, hints) |
 | `lib/daily/daily_store.dart` | Check-in, save log, award coins, load days + coin total |
-| `lib/daily/daily_checkin_card.dart` | Home card: check-in, swipeable log, animations, celebration |
+| `lib/daily/daily_checkin_card.dart` | Home card: check-in, swipeable log, meal picker button, animations, celebration, haptics |
+| `lib/daily/meal_catalog.dart` | 41 Indian foods with portions and kcal; `mealTotals()` |
+| `lib/daily/meal_picker_sheet.dart` | Meal picker bottom sheet (search, −/+ counts, live kcal vs goal) |
+| `lib/onboarding/onboarding_prefs.dart` | Device flag "welcome slides seen" (`shared_preferences`) |
+| `lib/onboarding/welcome_screen.dart` | 4 animated first-launch slides with language picker |
+| `lib/onboarding/consent_screen.dart` | What/why/who/choices + 2 required ticks (no age limit); saves consent |
+| `lib/onboarding/privacy_policy_screen.dart` | **Draft** privacy policy (DPDP Act principles); contact email is a placeholder |
+| `lib/widgets/skeleton.dart` | Shimmer placeholders (`Skeleton`, `SkeletonList`) |
+| `lib/widgets/friendly_state.dart` | Friendly empty/error states; `friendlyError()` plain-language messages |
 | `supabase/migrations/*.sql` | Database schema (see §6) |
 | `test/*.dart` | Unit + widget tests (see §10) |
 
@@ -175,10 +194,10 @@ their own rows, even though the app ships the public anon key.
 
 | Table | One row per | Key columns | Written by |
 |---|---|---|---|
-| `profiles` | user | email, phone, full_name, age, gender, height_cm, weight_kg, preferred_language | trigger on sign-up; setup screen; survey (age/height/weight) |
+| `profiles` | user | email, phone, full_name, age, gender, height_cm, weight_kg, preferred_language, consent_at, consent_version | trigger on sign-up; consent screen; setup screen; survey (age/height/weight) |
 | `assessments` | FIB-4 result | age, ast, alt, platelets (×10⁹/L), fib4_score, risk_tier, bmi | health check when blood values entered |
 | `survey_responses` | health check | answers (jsonb), score, tier, result (jsonb, full result), survey_version | health check |
-| `daily_checkins` | user per day | water_ml, calories, exercise_min, steps, sleep_hours, fruit_veg, sugary_items, score, logged_at (null = check-in only) | Home check-in card |
+| `daily_checkins` | user per day | water_ml, calories, exercise_min, steps, sleep_hours, fruit_veg, sugary_items, meals (jsonb `{food id: portions}`), score, logged_at (null = check-in only) | Home check-in card |
 | `coin_events` | coin reward | day, reason, amount (set by server), ref_id (special survey) | check-in card (amount overridden by trigger) |
 | `reward_rules` | way to earn | reason, amount, description, active | you (edit amounts here) |
 | `special_surveys` | announced survey | title, description, questions (jsonb), reward_coins, starts_at, ends_at, is_active | you (Table Editor / SQL) |
@@ -208,6 +227,21 @@ entry. Always via a **new** migration file.
 
 ## 7. Features in detail
 
+### 7.0 First run: welcome slides & consent
+- **Welcome slides** (first launch on a device, before login): Know your
+  liver · Build healthy days · Earn coins · Your data stays yours. Animated
+  emoji, chips, dots, Skip / Next / Get started, language picker. Seen-flag
+  stored on the device, so they show again on a new device or after
+  clearing browser data.
+- **Consent** (after sign-in, before profile setup): four cards (what we
+  store, why, who can see it, your choices), link to the privacy policy,
+  two required ticks (not a diagnosis, agree to storage). No age limit —
+  anyone can use the app. Saved as
+  `consent_at` + `consent_version`. Bump `currentConsentVersion`
+  (`data_service.dart`) when the text changes to ask everyone again.
+- **Privacy policy** screen: also linked from the Profile. **Draft** —
+  needs legal review and a real contact email.
+
 ### 7.1 Login & accounts
 - Email + password sign-in and "Create an account" (name, email, password
   ≥ 6). Forgot password sends a reset link; opening it shows a
@@ -227,6 +261,11 @@ entry. Always via a **new** migration file.
    - **Log today** → swipeable cards, one per item, each with −/+ buttons,
      slider, progress bar to goal, Skip/Add, hint; dots show progress and
      the live score updates. Last card: **Save · +10 🪙**.
+   - **Meal picker** (Food eaten card → "Pick what you ate"): 41 common
+     Indian foods in 4 groups with portions and kcal, search, −/+ per food,
+     running total vs goal. "Use N kcal" fills calories, and also fills
+     fruit & veg and sweets if those are still empty. Picks are saved with
+     the log (`meals`) and reloaded when editing. Values are **draft**.
    - "+N coins" celebration overlay after earning.
    - Once logged: animated score ring, coloured chip per item, **Edit**.
 3. **Food for a healthy liver** — 8 cards (5 eat-more, 3 limit), each opens
@@ -306,7 +345,18 @@ per hour outside 7–9. Sweets: 0 → 1, 1 → 0.6, 2 → 0.3, 3+ → 0.
 
 ---
 
-## 8. Design system
+## 8. Design system & UX polish
+- Loading: **skeleton shimmer** shaped like the content (daily card,
+  Profile); branded splash while the profile loads.
+- Errors: `FriendlyState.error` with plain words ("No internet
+  connection…") and Try again; raw error shown under it in debug only.
+- Large text: Home cards and food row grow with the phone's text size
+  (up to 1.6–1.7×); tested at 1.5×.
+- Haptics: check-in, save, −/+ steps, survey answers.
+- Pull to refresh on Home and Profile.
+- `SurfaceCard` contains a transparent `Material`, so ripples on ListTiles
+  inside white cards are visible.
+
 - Colours: `tealDark`, `tealLight`, `mintCard` (`theme.dart`); risk colours
   `kLow` green, `kMod` amber, `kHigh` red (`health_ui.dart`).
 - **`SurfaceCard`** — white card, soft border + shadow; use it for any
@@ -329,10 +379,15 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ✅ Folder structure (screens / services / survey / daily / data)
 
 ### Accounts & storage
+- ✅ Welcome slides (first launch)
+- ✅ Consent screen + draft privacy policy (DPDP principles)
+- ✅ Migration 5 applied
+- ⬜ Legal review of the privacy policy; real contact email
+- ⬜ Delete-my-account button
 - ✅ Supabase Auth email/password, sign-up, password reset
 - ✅ Profile auto-created on sign-up (name, email) + setup screen
 - ✅ Migrations 1 & 2 applied
-- ⬜ Migrations 3 & 4 applied
+- ✅ Migrations 3, 4 & 5 applied
 - 🟡 Phone OTP (needs Twilio enabled) · Google (needs OAuth client)
 
 ### Home
@@ -353,7 +408,8 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ✅ Check-in, swipeable log, personal targets, live score, animations
 - ✅ Saved to `daily_checkins`, editable same day
 - ⬜ Evening reminder notifications
-- ⬜ Calorie helper (pick meals instead of typing kcal)
+- ✅ Meal picker for calories (41 foods, auto-fills fruit & veg and sweets)
+- ⬜ Review food kcal values with a dietitian; add more regional foods
 - ⬜ Step sync from Google Fit / Apple Health
 
 ### Coins — Step 3
@@ -363,12 +419,18 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ⬜ Special survey screen (list open surveys on Home, answer, earn)
 - ⬜ Decide what coins are spent on (rewards, themes, challenges)
 
+### UX polish — done 1 Oct 2026
+- ✅ Skeleton loaders, friendly errors, branded splash
+- ✅ Large-text support on Home, haptics, pull to refresh, visible ripples
+- ⬜ Dark mode
+- ⬜ Screen-reader labels review
+
 ### Later / release
 - ⬜ Translate all new screens (8 languages)
 - ⬜ Native-speaker review of translations; doctor/dietitian review of all health text
 - ⬜ Weekly summary on Profile (average daily score, trend)
 - ⬜ More user details (to be provided by product owner)
-- ⬜ Consent screen, privacy policy (DPDP Act), delete-my-account
+- ⬜ Delete-my-account (consent + privacy policy done)
 - ⬜ App icon, splash screen, real share link, store listings
 - ✅ Local git repo created (`main`, initial commit); `env.json` and `livrcheck_flutter/` excluded
 - ✅ Pushed to GitHub: https://github.com/Sachin001k/livercheck-app_shreya (public)
@@ -376,7 +438,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 ---
 
 ## 10. Testing
-`flutter test` — 35 tests:
+`flutter test` — 41 tests:
 | File | Covers |
 |---|---|
 | `fib4_test.dart` | FIB-4 formula, tiers, BMI, invalid input |
@@ -384,7 +446,9 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 | `assess_test.dart` | healthy vs high-risk scoring, FIB-4 from labs, units, JSON round trip |
 | `daily_targets_test.dart` | water/calorie targets, day scoring |
 | `health_survey_test.dart` | taps through every question to results |
-| `home_screen_test.dart` | food card opens pop-up; all 8 pop-ups lay out |
+| `home_screen_test.dart` | food card opens pop-up; all 8 pop-ups lay out; Home at 1.5× text has no overflow |
+| `onboarding_test.dart` | welcome slides advance to Get started; consent button needs all 3 ticks |
+| `meal_catalog_test.dart` | meal totals (kcal, fruit & veg, sweets), unique food ids |
 
 Notes: Supabase isn't initialised in tests, so saves fail there (the UI
 must still work — it does). Home has repeating animations, so **don't use
@@ -410,6 +474,9 @@ screenshot with headless Chrome, then **delete the preview files**.
 | "Target file not found" | Wrong command; use the exact run command in §3 |
 | Port 8080 in use | `lsof -ti tcp:8080 \| xargs kill` |
 | Confirmation email opens localhost:3000 | Set Site URL (§4.3) |
+| Stuck on "Before we start" / "Could not save your consent" | Run migration 5 |
+| Welcome slides show again | Expected on a new device/browser or after clearing site data (flag is per device) |
+| Ripple not visible / "ListTile … DecoratedBox" assertion | Put ListTiles inside `SurfaceCard` (it provides a Material) |
 
 ---
 
@@ -425,8 +492,22 @@ screenshot with headless Chrome, then **delete the preview files**.
   currency). Streak = days with check-in or log.
 - Coin amounts set and verified server-side (trigger), not trusted from the app.
 - WhatsApp share button was part of the removed FIB-4 form — not currently in the app.
+- Welcome-seen flag is stored on the device (not Supabase) because the
+  slides show before sign-in.
+- Consent is versioned (`currentConsentVersion`) so changed terms re-ask.
+- Meal picker fills calories and only *empty* fruit & veg / sweets items,
+  so it never overwrites what the user set.
 
 ## 13. Known issues
+- **Decision pending — children:** the app has no age limit, but the health
+  check is built for adults (age slider 18–90; scoring validated for
+  adults). Option: let under-18s use the daily log/food/coins and show
+  "designed for adults" on the health check.
+- **Legal pending — DPDP Act:** data from under-18s needs verifiable
+  parent/guardian consent. Add a parent-consent step or an age limit
+  before public launch (confirm with a legal adviser).
+- Privacy policy contact email is a placeholder (`privacy@livrcheck.example`).
+- Meal names and the privacy policy are English only (welcome/consent text is in `en.dart`).
 - `lib/translations/hi.dart` has 5 login keys renamed (e.g. `'Login Into Livrcheck'`
   instead of `loginTitle`) → those show in English in Hindi.
 - `livrcheck_flutter/` is an outdated copy of the original code and doesn't
