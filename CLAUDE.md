@@ -52,6 +52,7 @@ packages `supabase_flutter`, `url_launcher`.
 | Download my data | ✅ Built (copy as JSON) |
 | Phone OTP / Google sign-in | 🟡 Code ready · hidden until configured |
 | Translations | 🟡 All 197 `en.dart` keys in 9 languages · survey/results/daily log/meal names still hardcoded English (Part B) |
+| Web app (public test link) | ✅ **https://livrcheck.vercel.app** (Vercel account `sachin001k`, project `livrcheck`) · ⬜ add it to Supabase URL Configuration |
 | Git / GitHub | ✅ **Public** repo [Sachin001k/livercheck-app_shreya](https://github.com/Sachin001k/livercheck-app_shreya), branch `main` |
 
 **Supabase migrations applied (last checked 1 Oct 2026):** 1 ✅ · 2 ✅ · 3 ✅ · 4 ✅ · 5 ✅ · 6 ✅
@@ -131,7 +132,9 @@ Supabase → Authentication → URL Configuration (**Site URL** and
 **Redirect URLs**), or sign-up confirmation emails link back to
 localhost. Custom domain: Vercel → project → Settings → Domains.
 The anon key ends up in the public JavaScript — that's expected; RLS
-protects the data.
+protects the data. The script deletes `.env*` files (Vercel's `link`
+writes a token to `build/web/.env.local`) and writes a `.vercelignore`,
+so no secrets are uploaded. Live: https://livrcheck.vercel.app
 
 **Android (Play Store):** step-by-step guide in
 [`docs/PLAY_STORE_GUIDE.md`](docs/PLAY_STORE_GUIDE.md). Before the first
@@ -502,9 +505,10 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ⬜ Real support email (`supportEmail` in `config.dart`)
 
 ### Later / release
-- ⬜ Web deploy to Vercel (script ready; waiting for the right Vercel account) + Supabase URL config
+- ✅ Web deployed to https://livrcheck.vercel.app (`./scripts/deploy_web.sh`) · ⬜ Supabase Site URL / Redirect URLs updated
 - ⬜ Play Store: developer account (👤), package name, icon, signing key, AAB build, listing, policies — see `docs/PLAY_STORE_GUIDE.md`
 - ⬜ Public pages on the website: privacy policy, account-deletion request
+- ⬜ Custom SMTP email provider (Supabase's built-in email is ~2/hour) and turn **Confirm email** back on if disabled for testing
 - ⬜ **Data safety:** upgrade Supabase to Pro (daily backups) **when publishing to the Play Store** — decided 1 Oct 2026. Until then the free plan is used daily (it only pauses after 7 idle days) and has no automatic backups.
 - ⬜ Offline saving: queue check-ins / logs without internet and sync later (today they fail with an error)
 - ⬜ Streak freeze: spend coins to protect a missed day (good first "Redeem rewards" item)
@@ -558,6 +562,7 @@ screenshot with headless Chrome, then **delete the preview files**.
 | "Target file not found" | Wrong command; use the exact run command in §3 |
 | Port 8080 in use | `lsof -ti tcp:8080 \| xargs kill` |
 | Confirmation email opens localhost:3000 | Set Site URL (§4.3) |
+| "email rate limit exceeded" on sign-up | Supabase's built-in email allows only ~2 emails/hour. Testing: turn off **Confirm email** (Auth → Providers → Email). Proper fix: custom SMTP (Resend / Brevo / SES) in Auth → Emails → SMTP, then raise Auth → Rate Limits. App now shows a plain-language message |
 | Stuck on "Before we start" / "Could not save your consent" | Run migration 5 |
 | Welcome slides show again | Expected on a new device/browser or after clearing site data (flag is per device) |
 | Daily check-in card: "null is not a subtype of String" after a special survey | Fixed 1 Oct: special survey coins have `day = null`; `sumCoins()` skips them per day but counts them in the total (`daily_store_test.dart`) |

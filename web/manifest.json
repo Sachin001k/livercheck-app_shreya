@@ -1,11 +1,11 @@
 {
-    "name": "livrcheck_app",
-    "short_name": "livrcheck_app",
+    "name": "LivrCheck",
+    "short_name": "LivrCheck",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Free liver and metabolic health check for India: FIB-4, daily habits and personalised tips. A screening tool, not a diagnosis.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

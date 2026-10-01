@@ -55,7 +55,19 @@ class _LoginScreenState extends State<LoginScreen> {
       await action();
     } catch (e) {
       if (mounted) {
-        setState(() => _error = AuthService.describeError(e, context.t('genericError')));
+        final raw = AuthService.describeError(e, context.t('genericError'));
+        // Turn common Supabase auth errors into plain advice.
+        final lower = raw.toLowerCase();
+        final message = lower.contains('rate limit')
+            ? context.t('authRateLimited')
+            : lower.contains('already registered')
+            ? context.t('authAlreadyRegistered')
+            : lower.contains('invalid login credentials')
+            ? context.t('authInvalidLogin')
+            : lower.contains('email not confirmed')
+            ? context.t('authEmailNotConfirmed')
+            : raw;
+        setState(() => _error = message);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -139,7 +151,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          context.t(_isSignUp ? 'createAccountTitle' : 'loginTitle'),
+                          context.t(
+                            _isSignUp ? 'createAccountTitle' : 'loginTitle',
+                          ),
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 36,
@@ -177,9 +191,7 @@ class _LoginScreenState extends State<LoginScreen> {
         padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ..._emailFields(context),
-          ],
+          children: [..._emailFields(context)],
         ),
       ),
     );
@@ -225,8 +237,10 @@ class _LoginScreenState extends State<LoginScreen> {
           child: TextButton(
             onPressed: _busy ? null : _forgotPassword,
             style: TextButton.styleFrom(foregroundColor: Colors.black87),
-            child: Text(context.t('forgotPassword'),
-                style: const TextStyle(fontSize: 13)),
+            child: Text(
+              context.t('forgotPassword'),
+              style: const TextStyle(fontSize: 13),
+            ),
           ),
         )
       else
@@ -244,16 +258,18 @@ class _LoginScreenState extends State<LoginScreen> {
         alignment: WrapAlignment.center,
         crossAxisAlignment: WrapCrossAlignment.center,
         children: [
-          Text(context.t(_isSignUp ? 'haveAccountPrompt' : 'noAccountPrompt'),
-              style: const TextStyle(fontSize: 13)),
+          Text(
+            context.t(_isSignUp ? 'haveAccountPrompt' : 'noAccountPrompt'),
+            style: const TextStyle(fontSize: 13),
+          ),
           TextButton(
             onPressed: _busy
                 ? null
                 : () => setState(() {
-                      _isSignUp = !_isSignUp;
-                      _error = null;
-                      _info = null;
-                    }),
+                    _isSignUp = !_isSignUp;
+                    _error = null;
+                    _info = null;
+                  }),
             style: TextButton.styleFrom(foregroundColor: tealDark),
             child: Text(
               context.t(_isSignUp ? 'signInLink' : 'createAccountLink'),
@@ -290,7 +306,10 @@ class _PrimaryButton extends StatelessWidget {
           ? const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: Colors.white,
+              ),
             )
           : Text(label),
     );
@@ -345,8 +364,10 @@ class _UnderlineField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w500),
+        ),
         TextField(
           controller: controller,
           obscureText: obscureText,

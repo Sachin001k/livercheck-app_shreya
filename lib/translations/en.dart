@@ -355,4 +355,14 @@ const Map<String, String> en = {
   'settingsAbout': 'About',
   'settingsVersion': 'Version',
   'settingsContact': 'Contact & feedback',
+
+  // ── Login errors (plain-language versions of Supabase messages) ──
+  'authRateLimited':
+      'Too many emails were sent in a short time. Please wait a few minutes '
+      'and try again. Already have an account? Sign in instead.',
+  'authAlreadyRegistered':
+      'This email already has an account. Tap Sign in below.',
+  'authInvalidLogin': 'Email or password is incorrect. Please try again.',
+  'authEmailNotConfirmed':
+      'Please confirm your email first — check your inbox for our link.',
 };

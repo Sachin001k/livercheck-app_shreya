@@ -22,6 +22,9 @@ if [ -d .vercel-web ]; then
 fi
 
 cd build/web
+# Never upload secrets or build metadata with the static site.
+rm -f .env .env.local .env.*.local
+printf '.env*\n.vercel\n.gitignore\n.last_build_id\n' > .vercelignore
 if [ "${1:-}" = "--preview" ]; then
   vercel deploy
 else
