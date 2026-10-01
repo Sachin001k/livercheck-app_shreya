@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../app_language.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
 import 'assess.dart';
@@ -36,9 +37,33 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
   bool _saving = false;
   final Answers _a = {};
 
+  /// Most recent saved check, shown above the intro.
+  ScoreEntry? _last;
+
+  /// How often we suggest re-taking the check (the plan says 3 months).
+  static const _recheckDays = 90;
+
+  Future<void> _loadLast() async {
+    try {
+      final history = (await ProgressStore.load()).history;
+      if (!mounted) return;
+      setState(() => _last = history.isEmpty ? null : history.last);
+    } catch (_) {
+      // The summary is optional; the check itself still works.
+    }
+  }
+
+  @override
+  void dispose() {
+    ProgressStore.changes.removeListener(_loadLast);
+    super.dispose();
+  }
+
   @override
   void initState() {
     super.initState();
+    _loadLast();
+    ProgressStore.changes.addListener(_loadLast);
     // Pre-fill what the profile already knows; the user only confirms.
     final p = widget.profile;
     if (p.gender == 'male') _a['sex'] = 'm';
@@ -146,6 +171,10 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
+        if (_last != null) ...[
+          _LastCheckCard(entry: _last!, recheckDays: _recheckDays),
+          const SizedBox(height: 16),
+        ],
         SurfaceCard(
           padding: const EdgeInsets.all(20),
           child: Column(
@@ -683,6 +712,115 @@ class _LabsStepState extends State<_LabsStep> {
         const SizedBox(height: 8),
         BigButton(label: 'See my results', onPressed: widget.onDone),
       ],
+    );
+  }
+}
+
+/// "Your last check": score, date, when the next one is due, and a link
+/// back to the full results.
+class _LastCheckCard extends StatelessWidget {
+  final ScoreEntry entry;
+  final int recheckDays;
+
+  const _LastCheckCard({required this.entry, required this.recheckDays});
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final d = entry.date;
+    final daysSince = DateTime.now().difference(d).inDays;
+    final daysLeft = recheckDays - daysSince;
+    final color = entry.score >= 80
+        ? kLow
+        : entry.score >= 60
+        ? cs.primary
+        : entry.score >= 40
+        ? kMod
+        : kHigh;
+    final result = entry.result;
+
+    return SurfaceCard(
+      child: Row(
+        children: [
+          SizedBox(
+            width: 64,
+            height: 64,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CircularProgressIndicator(
+                  value: entry.score / 100,
+                  strokeWidth: 7,
+                  strokeCap: StrokeCap.round,
+                  color: color,
+                  backgroundColor: cs.outlineVariant,
+                ),
+                Center(
+                  child: Text(
+                    '${entry.score}',
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  context.t('lastCheckTitle'),
+                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+                ),
+                Text(
+                  '${entry.tier.isEmpty ? '' : '${entry.tier} · '}${d.day} ${months[d.month - 1]} ${d.year}',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  daysLeft <= 0
+                      ? '⏰ ${context.t('lastCheckDueNow')}'
+                      : '${context.t('lastCheckNextIn')} $daysLeft ${context.t('daysUnit')}',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: daysLeft <= 0 ? kMod : cs.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (result != null)
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => ResultsScreen(result: result, takenAt: d),
+                ),
+              ),
+              child: Text(context.t('lastCheckSeeResults')),
+            ),
+        ],
+      ),
     );
   }
 }

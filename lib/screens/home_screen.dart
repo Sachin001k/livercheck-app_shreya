@@ -5,6 +5,7 @@ import '../daily/daily_checkin_card.dart';
 import '../data/home_content.dart';
 import '../services/data_service.dart';
 import '../theme.dart';
+import '../widgets/home_extras.dart';
 import 'food_detail_sheet.dart';
 
 /// Home tab: the health check and today's check-in side by side, then food
@@ -44,6 +45,10 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: SpecialSurveyBanner(),
+          ),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
             // Side by side on wide screens, stacked on phones.
@@ -66,6 +71,11 @@ class HomeScreen extends StatelessWidget {
                 );
               },
             ),
+          ),
+          const SizedBox(height: 16),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16),
+            child: TipOfTheDayCard(),
           ),
           _SectionTitle(context.t('foodSectionTitle')),
           SizedBox(

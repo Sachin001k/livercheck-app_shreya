@@ -133,6 +133,34 @@ class DataService {
     changes.value++;
   }
 
+  /// Everything LivrCheck stores about the signed-in user, for "Download my
+  /// data". Each table's rows are already limited to the user by RLS.
+  static Future<Map<String, dynamic>> exportMyData() async {
+    final id = _userId;
+    if (id == null) throw const AuthException('Not signed in');
+    const tables = [
+      'survey_responses',
+      'assessments',
+      'daily_checkins',
+      'coin_events',
+      'special_survey_responses',
+    ];
+    final results = await Future.wait<dynamic>([
+      _db.from('profiles').select().eq('id', id).maybeSingle(),
+      for (final t in tables) _db.from(t).select(),
+    ]);
+    return {
+      'exported_at': DateTime.now().toUtc().toIso8601String(),
+      'account': {
+        'id': id,
+        'email': _db.auth.currentUser?.email,
+        'phone': _db.auth.currentUser?.phone,
+      },
+      'profile': results[0],
+      for (var i = 0; i < tables.length; i++) tables[i]: results[i + 1],
+    };
+  }
+
   /// Records that the user accepted the current consent text.
   static Future<void> saveConsent() async {
     final id = _userId;

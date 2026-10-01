@@ -36,6 +36,7 @@ packages `supabase_flutter`, `url_launcher`.
 |---|---|
 | Welcome slides (first launch) | ✅ Built |
 | Consent screen + privacy policy | ✅ Built · policy is a draft |
+| Delete my account | ✅ Working (tested) |
 | Login (email + password) | ✅ Working with Supabase Auth |
 | Profile setup after sign-up | ✅ Working |
 | Home: health check card + daily check-in card | ✅ Built |
@@ -45,12 +46,15 @@ packages `supabase_flutter`, `url_launcher`.
 | Health check survey + results | ✅ Built · saving confirmed (bug fixed) |
 | Profile: score, coins, streak, Every day, badges | ✅ Built |
 | Coins & reward rules (server-checked) | ✅ Built |
-| Special surveys (announced later) | 🟡 Tables ready · no app screen yet |
+| Special surveys | ✅ Screen, Home banner, Rewards list · sample in `supabase/samples/` |
+| Rewards tab (coins, how to earn, badges, history, redeem placeholder) | ✅ Built |
+| Settings (language, reminder placeholder, account, privacy & data, about) | ✅ Built |
+| Download my data | ✅ Built (copy as JSON) |
 | Phone OTP / Google sign-in | 🟡 Code ready · hidden until configured |
-| Translations for new screens | ⬜ English only |
+| Translations | 🟡 All 197 `en.dart` keys in 9 languages · survey/results/daily log/meal names still hardcoded English (Part B) |
 | Git / GitHub | ✅ **Public** repo [Sachin001k/livercheck-app_shreya](https://github.com/Sachin001k/livercheck-app_shreya), branch `main` |
 
-**Supabase migrations applied (last checked 1 Oct 2026):** 1 ✅ · 2 ✅ · 3 ✅ · 4 ✅ · 5 ✅
+**Supabase migrations applied (last checked 1 Oct 2026):** 1 ✅ · 2 ✅ · 3 ✅ · 4 ✅ · 5 ✅ · 6 ✅
 
 ---
 
@@ -70,7 +74,7 @@ flutter run -d web-server --web-port 8080 --dart-define-from-file=env.json
 - After big changes, stop (`q`), run again, and hard-reload the browser
   (Cmd+Shift+R).
 
-Checks: `flutter analyze lib test` (must be clean) · `flutter test` (41 tests, all passing).
+Checks: `flutter analyze lib test` (must be clean) · `flutter test` (48 tests, all passing).
 
 Save work to GitHub: `git add . && git commit -m "What changed" && git push`.
 The repo is **public** — never commit `env.json` or real keys (check `git status` before committing).
@@ -101,6 +105,8 @@ Supabase → **SQL Editor** → New query → paste a file → **Run**. Run each
 | 4 | `20260930180000_rewards_and_special_surveys.sql` | `reward_rules`, `special_surveys`, `special_survey_responses`, `coin_balances` view, `award_coins` trigger | ✅ |
 | 5 | `20261001120000_consent_and_meals.sql` | `profiles.consent_at` + `consent_version`, `daily_checkins.meals` | ✅ |
 
+| 6 | `20261001150000_delete_my_account.sql` | `delete_my_account()` function (deletes the caller's account; all their rows cascade) | ✅ |
+
 > Without migration 5, signed-in users get stuck on the consent screen
 > ("Could not save your consent") because the consent columns don't exist.
 
@@ -114,6 +120,23 @@ Supabase → **SQL Editor** → New query → paste a file → **Run**. Run each
   - Google: off. Needs a Google Cloud OAuth client.
 
 ---
+
+## 4.4 Deploying
+
+**Web (shareable link, Vercel):** `./scripts/deploy_web.sh` builds with
+`env.json` and runs `vercel deploy --prod` from `build/web`
+(`--preview` for a separate test link). The project link is kept in
+`.vercel-web/` (git-ignored). After the first deploy, add the site URL to
+Supabase → Authentication → URL Configuration (**Site URL** and
+**Redirect URLs**), or sign-up confirmation emails link back to
+localhost. Custom domain: Vercel → project → Settings → Domains.
+The anon key ends up in the public JavaScript — that's expected; RLS
+protects the data.
+
+**Android (Play Store):** step-by-step guide in
+[`docs/PLAY_STORE_GUIDE.md`](docs/PLAY_STORE_GUIDE.md). Before the first
+upload the package name must change from `com.example.livrcheck_app`
+(permanent once published), and an upload keystore must be created.
 
 ## 5. Architecture
 
@@ -130,7 +153,8 @@ main.dart ── OnboardingPrefs.init ── Supabase.initialize (if env present
            └─ ready .................. MainShell (bottom tabs)
                                         ├─ Home     HomeScreen
                                         ├─ Check    HealthSurveyScreen
-                                        └─ Profile  ProfileScreen
+                                        ├─ Rewards  RewardsScreen
+                                        └─ Profile  ProfileScreen ── ⚙️ SettingsScreen
 ```
 - `AuthGate` listens to Supabase auth changes; switching accounts reloads
   everything (keyed by user id). Also handles the password-recovery link.
@@ -175,7 +199,15 @@ main.dart ── OnboardingPrefs.init ── Supabase.initialize (if env present
 | `lib/onboarding/onboarding_prefs.dart` | Device flag "welcome slides seen" (`shared_preferences`) |
 | `lib/onboarding/welcome_screen.dart` | 4 animated first-launch slides with language picker |
 | `lib/onboarding/consent_screen.dart` | What/why/who/choices + 2 required ticks (no age limit); saves consent |
+| `lib/screens/delete_account_dialog.dart` | "Delete my account" dialog (type DELETE to confirm) |
 | `lib/onboarding/privacy_policy_screen.dart` | **Draft** privacy policy (DPDP Act principles); contact email is a placeholder |
+| `lib/rewards/reward_store.dart` | Reward rules, coin history, special surveys (load + submit) |
+| `lib/rewards/rewards_screen.dart` | Rewards tab |
+| `lib/rewards/special_survey_screen.dart` | Answer a special survey (choice / multi / scale / text) |
+| `lib/rewards/badges.dart` | 10 badges and their unlock rules |
+| `lib/daily/weekly_summary.dart` | This week vs last week maths |
+| `lib/screens/settings_screen.dart` | Settings + Download my data dialog |
+| `lib/widgets/home_extras.dart` | Special survey banner, Tip of the day |
 | `lib/widgets/skeleton.dart` | Shimmer placeholders (`Skeleton`, `SkeletonList`) |
 | `lib/widgets/friendly_state.dart` | Friendly empty/error states; `friendlyError()` plain-language messages |
 | `supabase/migrations/*.sql` | Database schema (see §6) |
@@ -241,6 +273,12 @@ entry. Always via a **new** migration file.
   (`data_service.dart`) when the text changes to ask everyone again.
 - **Privacy policy** screen: also linked from the Profile. **Draft** —
   needs legal review and a real contact email.
+
+- **Delete my account** (Profile, under Sign out): explains what is lost,
+  user types DELETE, then `rpc('delete_my_account')` removes the auth user
+  and — via ON DELETE CASCADE — every row in every LivrCheck table, and
+  the app returns to the login screen. Without migration 6 it shows
+  "Could not delete your account".
 
 ### 7.1 Login & accounts
 - Email + password sign-in and "Create an account" (name, email, password
@@ -345,6 +383,31 @@ per hour outside 7–9. Sweets: 0 → 1, 1 → 0.6, 2 → 0.3, 3+ → 0.
 
 ---
 
+### 7.8 App blueprint (where every component lives)
+
+| Screen | Components (top to bottom) |
+|---|---|
+| First run | Welcome slides → Login → Consent → Profile setup |
+| **Home** | Greeting · Special survey banner (only when one is open) · Liver-risk card + Daily check-in card (side by side / stacked) · Tip of the day · Food cards · Health suggestions · FAQ |
+| **Check** | Your last check (score, date, next due in 90 days, See results) · Intro → 15 questions → Results |
+| **Rewards** | Coin balance + level · How to earn (from `reward_rules`) · Special surveys (open + completed) · Badges (10, hints when locked) · Redeem rewards (**placeholder**) · Coin history |
+| **Profile** | Header (⚙️ settings, ✏️ edit) · Health score + level · Streak · This week (avg score, days logged, best day, vs last week) · Stats · Score chart · Every day · Activity grid |
+| **Settings** | Language · Daily reminder (**placeholder**) · Edit profile · Sign out · Privacy policy · Download my data · Delete account · Version · Contact |
+| **Special survey** | Header with reward → questions as cards → Submit → "+N coins" |
+
+### 7.9 Special surveys — how to publish one
+Insert a row into `special_surveys` (Table Editor or SQL; example in
+`supabase/samples/sample_special_survey.sql`). `questions` is a JSON array:
+```json
+[{"id": "glasses", "type": "choice", "title": "How many glasses a day?",
+  "options": [{"v": "lt4", "label": "Fewer than 4", "emoji": "🥤"}]},
+ {"id": "energy", "type": "scale", "title": "Energy 1–5?"},
+ {"id": "notes",  "type": "text",  "title": "Anything else?"}]
+```
+Types: `choice`, `multi`, `scale` (1–5), `text`. It shows while
+`is_active` and between `starts_at` / `ends_at`. Answers go to
+`special_survey_responses`; coins (`reward_coins`) are paid once by the server.
+
 ## 8. Design system & UX polish
 - Loading: **skeleton shimmer** shaped like the content (daily card,
   Profile); branded splash while the profile loads.
@@ -383,7 +446,8 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ✅ Consent screen + draft privacy policy (DPDP principles)
 - ✅ Migration 5 applied
 - ⬜ Legal review of the privacy policy; real contact email
-- ⬜ Delete-my-account button
+- ✅ Delete-my-account (Profile → Delete my account) · ✅ migration 6 applied
+- ⬜ "Download my data" export (DPDP right to a copy)
 - ✅ Supabase Auth email/password, sign-up, password reset
 - ✅ Profile auto-created on sign-up (name, email) + setup screen
 - ✅ Migrations 1 & 2 applied
@@ -416,7 +480,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ✅ +1 / +10 / +20 rules, server-checked (`reward_rules`, `award_coins`)
 - ✅ Coins, levels, badges on Profile
 - ✅ Tables for special surveys with their own rewards
-- ⬜ Special survey screen (list open surveys on Home, answer, earn)
+- ✅ Special survey screen, Home banner, Rewards list, sample survey SQL
 - ⬜ Decide what coins are spent on (rewards, themes, challenges)
 
 ### UX polish — done 1 Oct 2026
@@ -425,12 +489,31 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ⬜ Dark mode
 - ⬜ Screen-reader labels review
 
+### App structure — done 1 Oct 2026
+- ✅ 4 tabs: Home · Check · Rewards · Profile
+- ✅ Rewards tab (balance, how to earn, surveys, badges, redeem placeholder, history)
+- ✅ Settings screen; Profile is progress-only (badges → Rewards; account items → Settings)
+- ✅ Home: special survey banner, tip of the day
+- ✅ Check: "Your last check" summary
+- ✅ Profile: weekly summary
+- ✅ Download my data (JSON copy)
+- ⬜ Redeem rewards (placeholder) — decide what coins buy
+- ⬜ Daily reminder (placeholder) — needs notifications
+- ⬜ Real support email (`supportEmail` in `config.dart`)
+
 ### Later / release
-- ⬜ Translate all new screens (8 languages)
+- ⬜ Web deploy to Vercel (script ready; waiting for the right Vercel account) + Supabase URL config
+- ⬜ Play Store: developer account (👤), package name, icon, signing key, AAB build, listing, policies — see `docs/PLAY_STORE_GUIDE.md`
+- ⬜ Public pages on the website: privacy policy, account-deletion request
+- ⬜ **Data safety:** upgrade Supabase to Pro (daily backups) **when publishing to the Play Store** — decided 1 Oct 2026. Until then the free plan is used daily (it only pauses after 7 idle days) and has no automatic backups.
+- ⬜ Offline saving: queue check-ins / logs without internet and sync later (today they fail with an error)
+- ⬜ Streak freeze: spend coins to protect a missed day (good first "Redeem rewards" item)
+- ✅ Translations Part A: every `en.dart` key translated into all 8 languages (drafts)
+- ⬜ Translations Part B: move hardcoded text (survey questions, results, assess reasons, daily log items, meal names, profile labels, privacy policy) into `en.dart`, then translate
 - ⬜ Native-speaker review of translations; doctor/dietitian review of all health text
 - ⬜ Weekly summary on Profile (average daily score, trend)
 - ⬜ More user details (to be provided by product owner)
-- ⬜ Delete-my-account (consent + privacy policy done)
+- ✅ Delete-my-account, consent and draft privacy policy
 - ⬜ App icon, splash screen, real share link, store listings
 - ✅ Local git repo created (`main`, initial commit); `env.json` and `livrcheck_flutter/` excluded
 - ✅ Pushed to GitHub: https://github.com/Sachin001k/livercheck-app_shreya (public)
@@ -447,8 +530,9 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 | `daily_targets_test.dart` | water/calorie targets, day scoring |
 | `health_survey_test.dart` | taps through every question to results |
 | `home_screen_test.dart` | food card opens pop-up; all 8 pop-ups lay out; Home at 1.5× text has no overflow |
-| `onboarding_test.dart` | welcome slides advance to Get started; consent button needs all 3 ticks |
+| `onboarding_test.dart` | welcome slides advance to Get started; consent needs both ticks; delete needs "DELETE" typed |
 | `meal_catalog_test.dart` | meal totals (kcal, fruit & veg, sweets), unique food ids |
+| `rewards_test.dart` | badge thresholds, weekly summary maths, special survey JSON parsing |
 
 Notes: Supabase isn't initialised in tests, so saves fail there (the UI
 must still work — it does). Home has repeating animations, so **don't use
@@ -476,6 +560,7 @@ screenshot with headless Chrome, then **delete the preview files**.
 | Confirmation email opens localhost:3000 | Set Site URL (§4.3) |
 | Stuck on "Before we start" / "Could not save your consent" | Run migration 5 |
 | Welcome slides show again | Expected on a new device/browser or after clearing site data (flag is per device) |
+| Daily check-in card: "null is not a subtype of String" after a special survey | Fixed 1 Oct: special survey coins have `day = null`; `sumCoins()` skips them per day but counts them in the total (`daily_store_test.dart`) |
 | Ripple not visible / "ListTile … DecoratedBox" assertion | Put ListTiles inside `SurfaceCard` (it provides a Material) |
 
 ---
@@ -508,8 +593,7 @@ screenshot with headless Chrome, then **delete the preview files**.
   before public launch (confirm with a legal adviser).
 - Privacy policy contact email is a placeholder (`privacy@livrcheck.example`).
 - Meal names and the privacy policy are English only (welcome/consent text is in `en.dart`).
-- `lib/translations/hi.dart` has 5 login keys renamed (e.g. `'Login Into Livrcheck'`
-  instead of `loginTitle`) → those show in English in Hindi.
+- App name spelling is mixed: older `appTitle` entries use local script (e.g. लिवरचेक), newer strings use Latin "LivrCheck". Pick one.
 - `livrcheck_flutter/` is an outdated copy of the original code and doesn't
   compile — delete once `SETUP.md` isn't needed.
 - `daily_habits` table and `daily_activity` logging are unused leftovers.

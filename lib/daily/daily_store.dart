@@ -41,6 +41,21 @@ class LogOutcome {
   const LogOutcome(this.score, this.coinsEarned);
 }
 
+/// Adds up coin rows ({day, amount}) into a total and per-day totals.
+/// Special survey coins have no day (they're once per survey, not per
+/// day): they count towards the total but not any single day.
+({Map<String, int> byDay, int total}) sumCoins(List<Map<String, dynamic>> rows) {
+  final byDay = <String, int>{};
+  var total = 0;
+  for (final row in rows) {
+    final amount = (row['amount'] as num).toInt();
+    total += amount;
+    final day = row['day'] as String?;
+    if (day != null) byDay[day] = (byDay[day] ?? 0) + amount;
+  }
+  return (byDay: byDay, total: total);
+}
+
 /// Daily check-ins, daily logs and coins, stored in Supabase (tables
 /// daily_checkins and coin_events — see supabase/migrations/).
 class DailyStore {
@@ -61,14 +76,7 @@ class DailyStore {
       _db.from('coin_events').select('day, amount'),
     ]);
 
-    final coinsByDay = <String, int>{};
-    var total = 0;
-    for (final row in results[1]) {
-      final amount = (row['amount'] as num).toInt();
-      total += amount;
-      final day = row['day'] as String;
-      coinsByDay[day] = (coinsByDay[day] ?? 0) + amount;
-    }
+    final (byDay: coinsByDay, total: total) = sumCoins(results[1]);
 
     final entries = <String, DailyEntry>{};
     for (final row in results[0]) {

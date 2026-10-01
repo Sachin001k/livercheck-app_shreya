@@ -49,3 +49,7 @@ env.json
 
 # Outdated copy of the original code (kept locally, not in the repo)
 livrcheck_flutter/
+
+# Vercel project link for the web build (see scripts/deploy_web.sh)
+.vercel-web/
+.vercel/

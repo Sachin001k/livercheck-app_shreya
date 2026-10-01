@@ -118,4 +118,173 @@ const Map<String, String> mr = {
   'or': 'किंवा',
   'loginRequiredError': 'कृपया तुमचे युजरनेम आणि पासवर्ड भरा.',
   'comingSoon': 'लवकरच येत आहे',
+
+  // ── Added: new screens ──
+  'loginSubtitle': 'तुमच्या लिव्हरच्या आरोग्यावर लक्ष ठेवण्यासाठी साइन इन करा',
+  'createAccountTitle': 'खाते तयार करा',
+  'tabEmail': 'ईमेल',
+  'tabPhone': 'फोन',
+  'fullNameLabel': 'पूर्ण नाव',
+  'fullNameHint': 'तुमचे नाव लिहा',
+  'emailLabel': 'ईमेल',
+  'emailHint': 'you@gmail.com',
+  'createAccountButton': 'खाते तयार करा',
+  'noAccountPrompt': 'LivrCheck वर नवीन आहात?',
+  'createAccountLink': 'नवीन खाते तयार करा',
+  'haveAccountPrompt': 'आधीच खाते आहे?',
+  'signInLink': 'साइन इन करा',
+  'phoneLabel': 'मोबाइल नंबर',
+  'phoneHint': '98765 43210',
+  'sendOtp': 'OTP पाठवा',
+  'otpLabel': 'OTP कोड',
+  'otpHint': '6 अंकी कोड',
+  'verifyOtp': 'तपासा आणि पुढे चला',
+  'otpSentTo': 'आम्ही कोड पाठवला आहे',
+  'changeNumber': 'नंबर बदला',
+  'resendOtp': 'कोड पुन्हा पाठवा',
+  'continueWithGoogle': 'Google ने पुढे चला',
+  'emailRequiredError': 'कृपया योग्य ईमेल पत्ता लिहा.',
+  'passwordLengthError': 'पासवर्ड किमान 6 अक्षरांचा असावा.',
+  'nameRequiredError': 'कृपया तुमचे नाव लिहा.',
+  'phoneRequiredError': 'कृपया योग्य 10 अंकी मोबाइल नंबर लिहा.',
+  'otpRequiredError': 'कृपया 6 अंकी कोड लिहा.',
+  'checkEmailConfirm':
+      'खाते तयार झाले! तुमचा ईमेल पाहा आणि खात्री करण्याच्या '
+      'लिंकवर टॅप करा, मग साइन इन करा.',
+  'resetEmailSent': 'पासवर्ड बदलण्याची लिंक पाठवली आहे. तुमचा ईमेल पाहा.',
+  'forgotPasswordNeedsEmail':
+      'आधी वर तुमचा ईमेल लिहा, मग \'पासवर्ड विसरलात\' वर टॅप करा.',
+  'genericError': 'काहीतरी चूक झाली. कृपया पुन्हा प्रयत्न करा.',
+  'setNewPasswordTitle': 'नवीन पासवर्ड ठेवा',
+  'passwordUpdated': 'पासवर्ड बदलला आहे.',
+  'save': 'सेव्ह करा',
+  'cancel': 'रद्द करा',
+  'setupTitle': 'तुमच्याबद्दल थोडं सांगा',
+  'setupSubtitle':
+      'यामुळे तुमचे निकाल तुमच्यासाठी योग्य बनतात. तुम्ही हे '
+      'कधीही बदलू शकता.',
+  'genderLabel': 'लिंग',
+  'genderMale': 'पुरुष',
+  'genderFemale': 'स्त्री',
+  'genderOther': 'इतर',
+  'genderPreferNot': 'सांगायचे नाही',
+  'ageRequiredError': 'कृपया योग्य वय लिहा (1–120).',
+  'continueButton': 'पुढे चला',
+  'loadProfileError': 'तुमची प्रोफाइल उघडता आली नाही.',
+  'retry': 'पुन्हा प्रयत्न करा',
+  'navHome': 'होम',
+  'navCheck': 'तपासणी',
+  'navProfile': 'प्रोफाइल',
+  'greeting': 'नमस्कार',
+  'homeCheckCardTitle': 'तुमच्या लिव्हरचा धोका तपासा',
+  'homeCheckCardBody':
+      'तुमचे लिव्हर, हृदय, किडनी आणि रक्तातील साखर यांची '
+      '2 मिनिटांची तपासणी.',
+  'startCheck': 'तपासणी सुरू करा',
+  'foodSectionTitle': 'निरोगी लिव्हरसाठी आहार',
+  'eatMore': 'जास्त खा',
+  'limitFood': 'कमी खा',
+  'tipsSectionTitle': 'आरोग्यासाठी सूचना',
+  'faqSectionTitle': 'फॅटी लिव्हर: नेहमीचे प्रश्न',
+  'dayStreak': 'दिवसांची सलग मालिका',
+  'longestStreak': 'सर्वात मोठी',
+  'daysUnit': 'दिवस',
+  'streakHint': 'तुमची मालिका चालू ठेवण्यासाठी रोज LivrCheck उघडा.',
+  'latestFib4': 'नवीन FIB-4',
+  'surveyScore': 'प्रश्नावली स्कोअर',
+  'checksDone': 'झालेल्या तपासण्या',
+  'bmiLabel': 'BMI',
+  'noDataYet': 'अजून माहिती नाही',
+  'sampleTag': 'नमुना',
+  'activityTitle': 'तुमची प्रगती',
+  'badgesTitle': 'यश',
+  'badgeFirstCheck': 'पहिली तपासणी',
+  'badgeStreak3': '3 दिवसांची मालिका',
+  'badgeStreak7': '7 दिवसांची मालिका',
+  'badgeFiveChecks': '5 तपासण्या',
+  'badgeProfile': 'प्रोफाइल पूर्ण',
+  'badgeSurvey': 'प्रश्नावली पूर्ण',
+  'recentChecks': 'अलीकडील तपासण्या',
+  'noChecksYet': 'अजून एकही तपासणी नाही — \'तपासणी\' टॅब वापरून पाहा.',
+  'editProfile': 'प्रोफाइल बदला',
+  'signOut': 'साइन आउट करा',
+  'memberSince': 'सदस्य झाल्यापासून',
+  'savedToHistory': 'निकाल तुमच्या प्रोफाइलमध्ये सेव्ह झाला.',
+  'saveFailed': 'हा निकाल सेव्ह करता आला नाही.',
+  'nutritionTitle': 'पोषणमूल्ये',
+  'perServing': 'प्रति',
+  'kcalUnit': 'kcal',
+  'dailyAmountTitle': 'रोज किती खाणे सुरक्षित आहे',
+  'ageChildren': 'मुले',
+  'ageAdults': 'प्रौढ',
+  'ageElders': 'ज्येष्ठ',
+  'benefitsTitle': 'यांपासून दूर ठेवण्यास मदत',
+  'overconsumptionTitle': 'जास्त खाल्ल्यास परिणाम होऊ शकतो',
+  'precautionsTitle': 'काळजी घ्या',
+  'swapsTitle': 'जास्त आरोग्यदायी पर्याय',
+  'detailsComingSoon': 'या पदार्थाची पूर्ण माहिती लवकरच येईल.',
+  'sampleContentNote':
+      'ही नमुना माहिती फक्त मार्गदर्शनासाठी आहे. विशेषतः तुम्हाला '
+      'एखादा आजार असल्यास, तुमच्या डॉक्टर किंवा आहारतज्ज्ञांना '
+      'विचारा.',
+  'close': 'बंद करा',
+  'viewDetails': 'माहिती पाहा',
+  'welcomeSkip': 'वगळा',
+  'welcomeNext': 'पुढे',
+  'welcomeStart': 'सुरू करा',
+  'welcome1Title': 'तुमचे लिव्हर ओळखा',
+  'welcome1Body':
+      'तुमचे लिव्हर, हृदय, किडनी, फुफ्फुसे आणि रक्तातील साखर यांची '
+      'मोफत 2 मिनिटांची तपासणी. रक्त तपासणी रिपोर्टची गरज नाही.',
+  'welcome2Title': 'रोजचे दिवस निरोगी बनवा',
+  'welcome2Body':
+      'रोज चेक-इन करा आणि पाणी, आहार, व्यायाम आणि झोप यांची नोंद '
+      'खास तुमच्यासाठी ठरवलेल्या ध्येयांनुसार करा.',
+  'welcome3Title': 'पुढे जाताना नाणी मिळवा',
+  'welcome3Body':
+      'चेक-इनसाठी +1, रोजच्या नोंदीसाठी +10 आणि 90+ दिवसासाठी +20. '
+      'तुमची मालिका चालू ठेवा!',
+  'welcome4Title': 'तुमची माहिती तुमचीच राहते',
+  'welcome4Body':
+      'तुमची आरोग्य माहिती फक्त तुम्हीच पाहू शकता, आणि आम्ही ती '
+      'कधीही विकत नाही. LivrCheck हे तपासणीचे साधन आहे, रोगनिदान '
+      'नाही.',
+  'consentTitle': 'सुरू करण्यापूर्वी',
+  'consentIntro': 'LivrCheck तुमची माहिती कशी वापरते ते कृपया वाचा.',
+  'consentCollectTitle': 'आम्ही काय साठवतो',
+  'consentCollectBody':
+      'तुमची प्रोफाइल (नाव, वय, उंची, वजन), आरोग्य तपासणीतील '
+      'उत्तरे आणि निकाल, आणि तुमच्या रोजच्या नोंदी.',
+  'consentWhyTitle': 'कशासाठी',
+  'consentWhyBody':
+      'फक्त तुमचे निकाल दाखवण्यासाठी, तुमची प्रगती पाहण्यासाठी आणि '
+      'तुमची ध्येये तुमच्यानुसार ठरवण्यासाठी.',
+  'consentWhoTitle': 'ही माहिती कोण पाहू शकते',
+  'consentWhoBody':
+      'फक्त तुम्ही. ती सुरक्षितपणे साठवली जाते आणि ती कधीही विकली '
+      'जात नाही किंवा जाहिरातदारांना दिली जात नाही.',
+  'consentRightsTitle': 'तुमचे पर्याय',
+  'consentRightsBody':
+      'तुम्ही कधीही तुमची प्रोफाइल बदलू शकता, आणि प्रोफाइल '
+      'पानावरून तुमचे खाते आणि सर्व माहिती डिलीट करू शकता.',
+  'consentNotDiagnosis':
+      'मला समजले आहे की LivrCheck हे तपासणीचे साधन आहे आणि ते '
+      'डॉक्टरांची जागा घेत नाही',
+  'consentStore':
+      'वर सांगितल्याप्रमाणे LivrCheck ने माझी आरोग्य माहिती '
+      'साठवण्यास माझी संमती आहे',
+  'consentReadPolicy': 'पूर्ण गोपनीयता धोरण वाचा',
+  'consentAgree': 'मी सहमत आहे, पुढे चला',
+  'consentSaveError': 'तुमची संमती सेव्ह करता आली नाही.',
+  'privacyTitle': 'गोपनीयता धोरण',
+  'deleteAccount': 'माझे खाते डिलीट करा',
+  'deleteAccountTitle': 'तुमचे खाते डिलीट करायचे?',
+  'deleteAccountBody':
+      'यामुळे तुमचे खाते आणि तुमची सर्व माहिती कायमची डिलीट होईल: '
+      'प्रोफाइल, आरोग्य तपासण्या, रोजच्या नोंदी, मालिका आणि नाणी. '
+      'हे परत आणता येणार नाही.',
+  'deleteAccountTypeToConfirm': 'खात्री करण्यासाठी DELETE टाइप करा',
+  'deleteAccountConfirm': 'कायमचे डिलीट करा',
+  'deleteAccountDone': 'तुमचे खाते आणि माहिती डिलीट झाली आहे.',
+  'deleteAccountFailed': 'तुमचे खाते डिलीट करता आले नाही.',
 };

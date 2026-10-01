@@ -74,6 +74,16 @@ class AuthService {
 
   static Future<void> signOut() => _auth.signOut();
 
+  /// Permanently deletes the signed-in user's account and all their data
+  /// (database function `delete_my_account`, migration 6), then signs out.
+  static Future<void> deleteAccount() async {
+    await Supabase.instance.client.rpc('delete_my_account');
+    try {
+      // The account no longer exists, so only clear the local session.
+      await _auth.signOut(scope: SignOutScope.local);
+    } catch (_) {}
+  }
+
   /// Turns Supabase errors into a message fit to show the user.
   /// In debug builds the raw error is added, so problems can be diagnosed.
   static String describeError(Object error, String fallback) {

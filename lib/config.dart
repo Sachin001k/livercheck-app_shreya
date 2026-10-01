@@ -13,6 +13,12 @@ bool get isSupabaseConfigured =>
     supabaseAnonKey.isNotEmpty &&
     !supabaseAnonKey.startsWith('paste-');
 
+/// Shown on the Settings screen. Keep in step with `version:` in pubspec.yaml.
+const String appVersion = '1.0.0';
+
+/// Where users send questions and data requests. TODO: real address.
+const String supportEmail = 'support@livrcheck.example';
+
 /// Deep link Supabase redirects to after Google sign-in / email links on
 /// Android and iOS. Must also be listed in Supabase → Authentication → URL
 /// Configuration → Redirect URLs.

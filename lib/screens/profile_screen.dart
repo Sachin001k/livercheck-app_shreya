@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import '../app_language.dart';
 import '../daily/daily_store.dart';
 import '../daily/daily_targets.dart';
+import '../daily/weekly_summary.dart';
 import '../fib4.dart';
-import '../onboarding/privacy_policy_screen.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
 import '../streak.dart';
@@ -14,6 +14,7 @@ import '../survey/results_screen.dart';
 import '../theme.dart';
 import '../widgets/friendly_state.dart';
 import '../widgets/skeleton.dart';
+import 'settings_screen.dart';
 import 'profile_setup_screen.dart';
 
 // Matiks-style progress: health score, coins and levels, streak, an
@@ -127,6 +128,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  void _openSettings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => SettingsScreen(onEditProfile: _editProfile),
+      ),
+    );
+  }
+
   void _editProfile() {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -156,7 +165,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _HeaderCard(profile: widget.profile, onEdit: _editProfile),
+          _HeaderCard(
+            profile: widget.profile,
+            onEdit: _editProfile,
+            onSettings: _openSettings,
+          ),
           const SizedBox(height: 16),
           if (data == null && _error != null)
             SurfaceCard(child: FriendlyState.error(_error!, onRetry: _load))
@@ -164,24 +177,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SkeletonList()
           else
             ..._buildBody(context, data),
-          const SizedBox(height: 16),
-          TextButton.icon(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const PrivacyPolicyScreen()),
-            ),
-            icon: const Icon(Icons.privacy_tip_outlined),
-            label: Text(context.t('privacyTitle')),
-          ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: AuthService.signOut,
-            icon: const Icon(Icons.logout),
-            label: Text(context.t('signOut')),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.red.shade700,
-              padding: const EdgeInsets.symmetric(vertical: 14),
-            ),
-          ),
         ],
       ),
     );
@@ -200,10 +195,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final coins = daily.totalCoins;
     final level = coins ~/ _coinsPerLevel + 1;
     final into = coins % _coinsPerLevel;
-    final bestDay = daily.days.values.fold<int>(
-      0,
-      (m, e) => (e.score ?? 0) > m ? e.score! : m,
-    );
 
     final history = d.history;
     final last = history.isEmpty ? null : history.last;
@@ -230,6 +221,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
         streakDays: streakDays,
         today: now,
       ),
+      const SizedBox(height: 16),
+      _WeeklyCard(summary: weeklySummary(daily.days.values, now)),
       const SizedBox(height: 16),
       GridView.count(
         crossAxisCount: 2,
@@ -288,22 +281,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       const SizedBox(height: 16),
       _ActivityCard(daily: daily, today: now),
-      const SizedBox(height: 16),
-      _BadgesCard(
-        badges: [
-          ('🩺', 'First check', history.isNotEmpty),
-          (
-            '📈',
-            'Improved score',
-            history.length > 1 && history.last.score > history.first.score,
-          ),
-          ('🔥', '3-day streak', longest >= 3),
-          ('🏆', '7-day streak', longest >= 7),
-          ('🎯', '$bonusScore+ day', bestDay >= bonusScore),
-          ('🪙', '100 coins', coins >= 100),
-          ('🧪', 'Blood report added', data.fib4Checks.isNotEmpty),
-        ],
-      ),
     ];
   }
 
@@ -350,8 +327,13 @@ class _SectionTitle extends StatelessWidget {
 class _HeaderCard extends StatelessWidget {
   final Profile profile;
   final VoidCallback onEdit;
+  final VoidCallback onSettings;
 
-  const _HeaderCard({required this.profile, required this.onEdit});
+  const _HeaderCard({
+    required this.profile,
+    required this.onEdit,
+    required this.onSettings,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -412,10 +394,19 @@ class _HeaderCard extends StatelessWidget {
               ],
             ),
           ),
-          IconButton(
-            tooltip: context.t('editProfile'),
-            onPressed: onEdit,
-            icon: const Icon(Icons.edit, color: Colors.white),
+          Column(
+            children: [
+              IconButton(
+                tooltip: context.t('settingsTitle'),
+                onPressed: onSettings,
+                icon: const Icon(Icons.settings, color: Colors.white),
+              ),
+              IconButton(
+                tooltip: context.t('editProfile'),
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit, color: Colors.white),
+              ),
+            ],
           ),
         ],
       ),
@@ -1125,66 +1116,94 @@ class _ActivityCard extends StatelessWidget {
   }
 }
 
-class _BadgesCard extends StatelessWidget {
-  /// (emoji, label, unlocked)
-  final List<(String, String, bool)> badges;
+/// This week vs last week: average daily score, days logged, best day.
+class _WeeklyCard extends StatelessWidget {
+  final WeeklySummary summary;
 
-  const _BadgesCard({required this.badges});
+  const _WeeklyCard({required this.summary});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    final cs = Theme.of(context).colorScheme;
+    final s = summary;
+    if (s.averageScore == null) {
+      return SurfaceCard(
+        child: Row(
           children: [
-            Text(
-              context.t('badgesTitle'),
-              style: const TextStyle(fontWeight: FontWeight.w600),
-            ),
-            const SizedBox(height: 12),
-            GridView.count(
-              crossAxisCount: 3,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 12,
-              crossAxisSpacing: 12,
-              childAspectRatio: 1.4,
-              children: [
-                for (final (emoji, label, unlocked) in badges)
-                  Opacity(
-                    opacity: unlocked ? 1 : 0.4,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: unlocked ? mintCard : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.all(8),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            unlocked ? emoji : '🔒',
-                            style: const TextStyle(fontSize: 26),
-                          ),
-                          const SizedBox(height: 6),
-                          Text(
-                            label,
-                            textAlign: TextAlign.center,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(fontSize: 11),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
+            const Text('📊', style: TextStyle(fontSize: 28)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                context.t('weeklyEmpty'),
+                style: TextStyle(color: cs.onSurfaceVariant),
+              ),
             ),
           ],
         ),
+      );
+    }
+    final change = s.change;
+    Widget stat(String value, String label, {Color? color}) => Expanded(
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: color,
+            ),
+          ),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+          ),
+        ],
+      ),
+    );
+    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    return SurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                context.t('weeklyTitle'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
+              ),
+              const Spacer(),
+              if (change != null)
+                Text(
+                  '${change >= 0 ? '▲' : '▼'} ${change.abs()} ${context.t('weeklyVsLast')}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    color: change >= 0 ? kLow : kHigh,
+                    fontSize: 12,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              stat(
+                '${s.averageScore}',
+                context.t('weeklyAverage'),
+                color: _scoreColor(s.averageScore!, cs),
+              ),
+              stat('${s.daysLogged}/7', context.t('weeklyDaysLogged')),
+              stat(
+                s.bestDay == null ? '—' : weekdays[s.bestDay!.weekday - 1],
+                '${context.t('weeklyBest')}${s.bestScore == null ? '' : ' · ${s.bestScore}'}',
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

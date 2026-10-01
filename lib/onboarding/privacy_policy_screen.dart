@@ -35,14 +35,15 @@ const _sections = [
   ),
   (
     'How long we keep it',
-    'For as long as you have an account. When you delete your account, your '
-        'data is deleted within 30 days.',
+    'For as long as you have an account. When you delete your account, all '
+        'your data is deleted straight away.',
   ),
   (
     'Your rights',
-    'You can see and edit your profile in the app at any time. You can ask '
-        'us for a copy of your data, to correct it, or to delete your account '
-        'and all your data, by emailing $_contactEmail.',
+    'You can see and edit your profile in the app at any time, and delete '
+        'your account and all your data yourself (Profile → Delete my '
+        'account) — it is erased immediately. For a copy of your data or '
+        'any other request, email $_contactEmail.',
   ),
   (
     'Not medical advice',

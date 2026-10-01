@@ -116,4 +116,170 @@ const Map<String, String> or = {
   'or': 'କିମ୍ବା',
   'loginRequiredError': 'ଦୟାକରି ଆପଣଙ୍କ ୟୁଜରନେମ୍ ଏବଂ ପାସୱାର୍ଡ ଲେଖନ୍ତୁ।',
   'comingSoon': 'ଶୀଘ୍ର ଆସୁଛି',
+
+  // ── Added: new screens ──
+  'loginSubtitle': 'ଆପଣଙ୍କ ଯକୃତ ସ୍ୱାସ୍ଥ୍ୟ ଉପରେ ନଜର ରଖିବା ପାଇଁ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ',
+  'createAccountTitle': 'ଆକାଉଣ୍ଟ ତିଆରି କରନ୍ତୁ',
+  'tabEmail': 'ଇମେଲ୍',
+  'tabPhone': 'ଫୋନ୍',
+  'fullNameLabel': 'ପୂରା ନାମ',
+  'fullNameHint': 'ଆପଣଙ୍କ ନାମ ଲେଖନ୍ତୁ',
+  'emailLabel': 'ଇମେଲ୍',
+  'emailHint': 'you@gmail.com',
+  'createAccountButton': 'ଆକାଉଣ୍ଟ ତିଆରି କରନ୍ତୁ',
+  'noAccountPrompt': 'LivrCheck ରେ ନୂଆ କି?',
+  'createAccountLink': 'ଏକ ଆକାଉଣ୍ଟ ତିଆରି କରନ୍ତୁ',
+  'haveAccountPrompt': 'ପୂର୍ବରୁ ଆକାଉଣ୍ଟ ଅଛି କି?',
+  'signInLink': 'ସାଇନ୍ ଇନ୍',
+  'phoneLabel': 'ମୋବାଇଲ୍ ନମ୍ବର',
+  'phoneHint': '98765 43210',
+  'sendOtp': 'OTP ପଠାନ୍ତୁ',
+  'otpLabel': 'OTP କୋଡ୍',
+  'otpHint': '6-ଅଙ୍କ କୋଡ୍',
+  'verifyOtp': 'ଯାଞ୍ଚ କରି ଆଗକୁ ଯାଆନ୍ତୁ',
+  'otpSentTo': 'ଆମେ ଏହି ନମ୍ବରକୁ କୋଡ୍ ପଠାଇଛୁ',
+  'changeNumber': 'ନମ୍ବର ବଦଳାନ୍ତୁ',
+  'resendOtp': 'କୋଡ୍ ପୁଣି ପଠାନ୍ତୁ',
+  'continueWithGoogle': 'Google ସହ ଆଗକୁ ଯାଆନ୍ତୁ',
+  'emailRequiredError': 'ଦୟାକରି ଏକ ଠିକ୍ ଇମେଲ୍ ଠିକଣା ଲେଖନ୍ତୁ।',
+  'passwordLengthError': 'ପାସୱାର୍ଡ ଅତି କମରେ 6 ଅକ୍ଷରର ହେବା ଦରକାର।',
+  'nameRequiredError': 'ଦୟାକରି ଆପଣଙ୍କ ନାମ ଲେଖନ୍ତୁ।',
+  'phoneRequiredError': 'ଦୟାକରି ଏକ ଠିକ୍ 10-ଅଙ୍କ ମୋବାଇଲ୍ ନମ୍ବର ଲେଖନ୍ତୁ।',
+  'otpRequiredError': 'ଦୟାକରି 6-ଅଙ୍କ କୋଡ୍ ଲେଖନ୍ତୁ।',
+  'checkEmailConfirm':
+      'ଆକାଉଣ୍ଟ ତିଆରି ହୋଇଗଲା! ଆପଣଙ୍କ ଇମେଲ୍ ଦେଖନ୍ତୁ ଏବଂ ନିଶ୍ଚିତକରଣ '
+      'ଲିଙ୍କରେ ଟ୍ୟାପ୍ କରନ୍ତୁ, ତା\'ପରେ ସାଇନ୍ ଇନ୍ କରନ୍ତୁ।',
+  'resetEmailSent': 'ପାସୱାର୍ଡ ରିସେଟ୍ ଲିଙ୍କ ପଠାଗଲା। ଆପଣଙ୍କ ଇମେଲ୍ ଦେଖନ୍ତୁ।',
+  'forgotPasswordNeedsEmail':
+      'ପ୍ରଥମେ ଉପରେ ଆପଣଙ୍କ ଇମେଲ୍ ଲେଖନ୍ତୁ, ତା\'ପରେ "ପାସୱାର୍ଡ ଭୁଲିଗଲେ" '
+      'ରେ ଟ୍ୟାପ୍ କରନ୍ତୁ।',
+  'genericError': 'କିଛି ଭୁଲ ହୋଇଗଲା। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'setNewPasswordTitle': 'ନୂଆ ପାସୱାର୍ଡ ସେଟ୍ କରନ୍ତୁ',
+  'passwordUpdated': 'ପାସୱାର୍ଡ ବଦଳିଗଲା।',
+  'save': 'ସେଭ୍ କରନ୍ତୁ',
+  'cancel': 'ବାତିଲ୍',
+  'setupTitle': 'ଆପଣଙ୍କ ବିଷୟରେ ଆମକୁ କୁହନ୍ତୁ',
+  'setupSubtitle':
+      'ଏହା ଆପଣଙ୍କ ପାଇଁ ଫଳାଫଳକୁ ଠିକ୍ ଭାବେ ସଜାଇବାରେ ସାହାଯ୍ୟ କରେ। '
+      'ଆପଣ ଯେକୌଣସି ସମୟରେ ଏହାକୁ ବଦଳାଇପାରିବେ।',
+  'genderLabel': 'ଲିଙ୍ଗ',
+  'genderMale': 'ପୁରୁଷ',
+  'genderFemale': 'ମହିଳା',
+  'genderOther': 'ଅନ୍ୟ',
+  'genderPreferNot': 'କହିବାକୁ ଚାହେଁ ନାହିଁ',
+  'ageRequiredError': 'ଦୟାକରି ଏକ ଠିକ୍ ବୟସ ଲେଖନ୍ତୁ (1–120)।',
+  'continueButton': 'ଆଗକୁ ଯାଆନ୍ତୁ',
+  'loadProfileError': 'ଆପଣଙ୍କ ପ୍ରୋଫାଇଲ୍ ଲୋଡ୍ ହୋଇପାରିଲା ନାହିଁ।',
+  'retry': 'ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ',
+  'navHome': 'ହୋମ୍',
+  'navCheck': 'ଯାଞ୍ଚ',
+  'navProfile': 'ପ୍ରୋଫାଇଲ୍',
+  'greeting': 'ନମସ୍କାର',
+  'homeCheckCardTitle': 'ଆପଣଙ୍କ ଯକୃତ ବିପଦ ଯାଞ୍ଚ କରନ୍ତୁ',
+  'homeCheckCardBody':
+      'ଆପଣଙ୍କ ଯକୃତ, ହୃଦୟ, କିଡ୍ନୀ ଏବଂ ରକ୍ତ ଶର୍କରାର 2 ମିନିଟର ଯାଞ୍ଚ।',
+  'startCheck': 'ଯାଞ୍ଚ ଆରମ୍ଭ କରନ୍ତୁ',
+  'foodSectionTitle': 'ସୁସ୍ଥ ଯକୃତ ପାଇଁ ଖାଦ୍ୟ',
+  'eatMore': 'ଅଧିକ ଖାଆନ୍ତୁ',
+  'limitFood': 'କମ୍ ଖାଆନ୍ତୁ',
+  'tipsSectionTitle': 'ସ୍ୱାସ୍ଥ୍ୟ ପରାମର୍ଶ',
+  'faqSectionTitle': 'ଫ୍ୟାଟି ଲିଭର — ସାଧାରଣ ପ୍ରଶ୍ନ',
+  'dayStreak': 'ଦିନର ଧାରା',
+  'longestStreak': 'ସବୁଠାରୁ ଲମ୍ବା',
+  'daysUnit': 'ଦିନ',
+  'streakHint': 'ଆପଣଙ୍କ ଧାରା ଜାରି ରଖିବା ପାଇଁ ପ୍ରତିଦିନ LivrCheck ଖୋଲନ୍ତୁ।',
+  'latestFib4': 'ଶେଷ FIB-4',
+  'surveyScore': 'ସର୍ଭେ ସ୍କୋର',
+  'checksDone': 'ହୋଇଥିବା ଯାଞ୍ଚ',
+  'bmiLabel': 'BMI',
+  'noDataYet': 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ତଥ୍ୟ ନାହିଁ',
+  'sampleTag': 'ନମୁନା',
+  'activityTitle': 'ଆପଣଙ୍କ କାର୍ଯ୍ୟକଳାପ',
+  'badgesTitle': 'ସଫଳତା',
+  'badgeFirstCheck': 'ପ୍ରଥମ ଯାଞ୍ଚ',
+  'badgeStreak3': '3 ଦିନର ଧାରା',
+  'badgeStreak7': '7 ଦିନର ଧାରା',
+  'badgeFiveChecks': '5ଟି ଯାଞ୍ଚ',
+  'badgeProfile': 'ପ୍ରୋଫାଇଲ୍ ସମ୍ପୂର୍ଣ୍ଣ',
+  'badgeSurvey': 'ସର୍ଭେ ସମ୍ପୂର୍ଣ୍ଣ',
+  'recentChecks': 'ସମ୍ପ୍ରତି ଯାଞ୍ଚ',
+  'noChecksYet': 'ଏପର୍ଯ୍ୟନ୍ତ କୌଣସି ଯାଞ୍ଚ ନାହିଁ — "ଯାଞ୍ଚ" ଟ୍ୟାବ୍ ଚେଷ୍ଟା କରନ୍ତୁ।',
+  'editProfile': 'ପ୍ରୋଫାଇଲ୍ ବଦଳାନ୍ତୁ',
+  'signOut': 'ସାଇନ୍ ଆଉଟ୍',
+  'memberSince': 'ସଦସ୍ୟ ହେବାର ତାରିଖ',
+  'savedToHistory': 'ଫଳାଫଳ ଆପଣଙ୍କ ପ୍ରୋଫାଇଲରେ ସେଭ୍ ହୋଇଗଲା।',
+  'saveFailed': 'ଏହି ଫଳାଫଳ ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ।',
+  'nutritionTitle': 'ପୋଷଣ',
+  'perServing': 'ପ୍ରତି',
+  'kcalUnit': 'kcal',
+  'dailyAmountTitle': 'ଦିନକୁ କେତେ ଖାଇବା ସୁରକ୍ଷିତ',
+  'ageChildren': 'ପିଲା',
+  'ageAdults': 'ବୟସ୍କ',
+  'ageElders': 'ବୟୋବୃଦ୍ଧ',
+  'benefitsTitle': 'ଏଥିରୁ ଦୂରେଇ ରଖିବାରେ ସାହାଯ୍ୟ କରେ',
+  'overconsumptionTitle': 'ଅଧିକ ଖାଇଲେ ପ୍ରଭାବ ପଡ଼ିପାରେ',
+  'precautionsTitle': 'ସାବଧାନତା',
+  'swapsTitle': 'ସୁସ୍ଥ ବିକଳ୍ପ',
+  'detailsComingSoon': 'ଏହି ଖାଦ୍ୟର ପୂରା ବିବରଣୀ ଶୀଘ୍ର ଆସୁଛି।',
+  'sampleContentNote':
+      'କେବଳ ମାର୍ଗଦର୍ଶନ ପାଇଁ ନମୁନା ବିଷୟବସ୍ତୁ। ଆପଣଙ୍କ ଡାକ୍ତର ବା ଡାଏଟିସିଆନଙ୍କ '
+      'ସହ ପରାମର୍ଶ କରନ୍ତୁ, ବିଶେଷକରି ଯଦି ଆପଣଙ୍କର କୌଣସି ରୋଗ ଅଛି।',
+  'close': 'ବନ୍ଦ କରନ୍ତୁ',
+  'viewDetails': 'ବିବରଣୀ ଦେଖନ୍ତୁ',
+  'welcomeSkip': 'ଛାଡ଼ନ୍ତୁ',
+  'welcomeNext': 'ପରବର୍ତ୍ତୀ',
+  'welcomeStart': 'ଆରମ୍ଭ କରନ୍ତୁ',
+  'welcome1Title': 'ଆପଣଙ୍କ ଯକୃତକୁ ଜାଣନ୍ତୁ',
+  'welcome1Body':
+      'ଆପଣଙ୍କ ଯକୃତ, ହୃଦୟ, କିଡ୍ନୀ, ଫୁସଫୁସ ଏବଂ ରକ୍ତ ଶର୍କରାର ଏକ ମାଗଣା '
+      '2 ମିନିଟର ଯାଞ୍ଚ। ରକ୍ତ ରିପୋର୍ଟ ଦରକାର ନାହିଁ।',
+  'welcome2Title': 'ସୁସ୍ଥ ଦିନ ଗଢ଼ନ୍ତୁ',
+  'welcome2Body':
+      'ପ୍ରତିଦିନ ଚେକ୍-ଇନ୍ କରନ୍ତୁ ଏବଂ କେବଳ ଆପଣଙ୍କ ପାଇଁ ତିଆରି ଲକ୍ଷ୍ୟ '
+      'ଅନୁସାରେ ପାଣି, ଖାଦ୍ୟ, ବ୍ୟାୟାମ ଓ ନିଦ ଲେଖି ରଖନ୍ତୁ।',
+  'welcome3Title': 'ଆଗକୁ ବଢ଼ିବା ସହ କଏନ୍ ଜିତନ୍ତୁ',
+  'welcome3Body':
+      'ଚେକ୍-ଇନ୍ ପାଇଁ +1, ଦୈନିକ ଲଗ୍ ପାଇଁ +10 ଏବଂ 90+ ଦିନ ପାଇଁ +20। '
+      'ଆପଣଙ୍କ ଧାରା ଜାରି ରଖନ୍ତୁ!',
+  'welcome4Title': 'ଆପଣଙ୍କ ତଥ୍ୟ ଆପଣଙ୍କର ହିଁ ରହେ',
+  'welcome4Body':
+      'କେବଳ ଆପଣ ହିଁ ଆପଣଙ୍କ ସ୍ୱାସ୍ଥ୍ୟ ତଥ୍ୟ ଦେଖିପାରିବେ, ଏବଂ ଆମେ ଏହାକୁ କେବେ '
+      'ବିକ୍ରି କରୁନାହୁଁ। LivrCheck ଏକ ସ୍କ୍ରିନିଂ ଉପକରଣ, ରୋଗ ନିଦାନ ନୁହେଁ।',
+  'consentTitle': 'ଆରମ୍ଭ କରିବା ପୂର୍ବରୁ',
+  'consentIntro': 'LivrCheck ଆପଣଙ୍କ ତଥ୍ୟ କିପରି ବ୍ୟବହାର କରେ, ଦୟାକରି ପଢ଼ନ୍ତୁ।',
+  'consentCollectTitle': 'ଆମେ କ\'ଣ ରଖୁ',
+  'consentCollectBody':
+      'ଆପଣଙ୍କ ପ୍ରୋଫାଇଲ୍ (ନାମ, ବୟସ, ଉଚ୍ଚତା, ଓଜନ), ସ୍ୱାସ୍ଥ୍ୟ ଯାଞ୍ଚର ଉତ୍ତର '
+      'ଓ ଫଳାଫଳ, ଏବଂ ଆପଣଙ୍କ ଦୈନିକ ଲଗ୍।',
+  'consentWhyTitle': 'କାହିଁକି',
+  'consentWhyBody':
+      'କେବଳ ଆପଣଙ୍କ ଫଳାଫଳ ଦେଖାଇବା, ଆପଣଙ୍କ ଉନ୍ନତି ଉପରେ ନଜର ରଖିବା ଏବଂ '
+      'ଆପଣଙ୍କ ପାଇଁ ଲକ୍ଷ୍ୟ ସଜାଇବା ପାଇଁ।',
+  'consentWhoTitle': 'କିଏ ଦେଖିପାରିବ',
+  'consentWhoBody':
+      'କେବଳ ଆପଣ। ଏହା ସୁରକ୍ଷିତ ଭାବେ ରଖାଯାଏ ଏବଂ କେବେ ବିକ୍ରି କରାଯାଏ ନାହିଁ '
+      'କିମ୍ବା ବିଜ୍ଞାପନଦାତାଙ୍କ ସହ ସେୟାର କରାଯାଏ ନାହିଁ।',
+  'consentRightsTitle': 'ଆପଣଙ୍କ ପସନ୍ଦ',
+  'consentRightsBody':
+      'ଆପଣ ଯେକୌଣସି ସମୟରେ ପ୍ରୋଫାଇଲ୍ ବଦଳାଇପାରିବେ, ଏବଂ ପ୍ରୋଫାଇଲ୍ ପେଜରୁ '
+      'ଆପଣଙ୍କ ଆକାଉଣ୍ଟ ଓ ସମସ୍ତ ତଥ୍ୟ ଡିଲିଟ୍ କରିପାରିବେ।',
+  'consentNotDiagnosis':
+      'ମୁଁ ବୁଝୁଛି ଯେ LivrCheck ଏକ ସ୍କ୍ରିନିଂ ଉପକରଣ ଏବଂ ଏହା ଡାକ୍ତରଙ୍କ '
+      'ସ୍ଥାନ ନିଏ ନାହିଁ',
+  'consentStore':
+      'ଉପରେ କୁହାଯାଇଥିବା ପରି LivrCheck ମୋ ସ୍ୱାସ୍ଥ୍ୟ ତଥ୍ୟ ରଖିବାରେ ମୁଁ ରାଜି',
+  'consentReadPolicy': 'ପୂରା ଗୋପନୀୟତା ନୀତି ପଢ଼ନ୍ତୁ',
+  'consentAgree': 'ମୁଁ ରାଜି, ଆଗକୁ ଯାଆନ୍ତୁ',
+  'consentSaveError': 'ଆପଣଙ୍କ ସମ୍ମତି ସେଭ୍ ହୋଇପାରିଲା ନାହିଁ।',
+  'privacyTitle': 'ଗୋପନୀୟତା ନୀତି',
+  'deleteAccount': 'ମୋ ଆକାଉଣ୍ଟ ଡିଲିଟ୍ କରନ୍ତୁ',
+  'deleteAccountTitle': 'ଆପଣଙ୍କ ଆକାଉଣ୍ଟ ଡିଲିଟ୍ କରିବେ କି?',
+  'deleteAccountBody':
+      'ଏହା ଆପଣଙ୍କ ଆକାଉଣ୍ଟ ଏବଂ ସମସ୍ତ ତଥ୍ୟ ସବୁଦିନ ପାଇଁ ଡିଲିଟ୍ କରିଦେବ: '
+      'ପ୍ରୋଫାଇଲ୍, ସ୍ୱାସ୍ଥ୍ୟ ଯାଞ୍ଚ, ଦୈନିକ ଲଗ୍, ଧାରା ଏବଂ କଏନ୍। ଏହାକୁ ଆଉ '
+      'ଫେରାଇ ହେବ ନାହିଁ।',
+  'deleteAccountTypeToConfirm': 'ନିଶ୍ଚିତ କରିବା ପାଇଁ DELETE ଟାଇପ୍ କରନ୍ତୁ',
+  'deleteAccountConfirm': 'ସବୁଦିନ ପାଇଁ ଡିଲିଟ୍ କରନ୍ତୁ',
+  'deleteAccountDone': 'ଆପଣଙ୍କ ଆକାଉଣ୍ଟ ଓ ତଥ୍ୟ ଡିଲିଟ୍ ହୋଇଗଲା।',
+  'deleteAccountFailed': 'ଆପଣଙ୍କ ଆକାଉଣ୍ଟ ଡିଲିଟ୍ ହୋଇପାରିଲା ନାହିଁ।',
 };

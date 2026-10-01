@@ -270,8 +270,8 @@ const Map<String, String> en = {
       'advertisers.',
   'consentRightsTitle': 'Your choices',
   'consentRightsBody':
-      'You can edit your profile any time and ask us to delete your account '
-      'and all your data.',
+      'You can edit your profile any time, and delete your account and all '
+      'your data from the Profile page.',
   'consentNotDiagnosis':
       'I understand LivrCheck is a screening tool and does not replace a '
       'doctor',
@@ -281,4 +281,78 @@ const Map<String, String> en = {
   'consentAgree': 'I agree, continue',
   'consentSaveError': 'Could not save your consent.',
   'privacyTitle': 'Privacy policy',
+
+  // ── Delete account ──
+  'deleteAccount': 'Delete my account',
+  'deleteAccountTitle': 'Delete your account?',
+  'deleteAccountBody':
+      'This permanently deletes your account and all your data: profile, '
+      'health checks, daily logs, streaks and coins. It cannot be undone.',
+  'deleteAccountTypeToConfirm': 'Type DELETE to confirm',
+  'deleteAccountConfirm': 'Delete forever',
+  'deleteAccountDone': 'Your account and data have been deleted.',
+  'deleteAccountFailed': 'Could not delete your account.',
+
+  // ── Rewards tab ──
+  'navRewards': 'Rewards',
+  'rewardsYourCoins': 'Your coins',
+  'rewardsLevel': 'Level',
+  'rewardsToNextLevel': 'coins to the next level',
+  'rewardsHowToEarn': 'How to earn coins',
+  'rewardsOncePerDay': 'once a day',
+  'rewardsPerSurvey': 'per survey',
+  'rewardsSpecialSurveys': 'Special surveys',
+  'rewardsNoSurveys':
+      'No special surveys right now. New ones will appear here and on the Home page.',
+  'rewardsCompleted': 'Completed',
+  'rewardsEnds': 'Ends',
+  'rewardsStart': 'Start',
+  'rewardsBadges': 'Badges',
+  'rewardsHistory': 'Coin history',
+  'rewardsNoHistory':
+      'No coins yet. Check in on the Home page to earn your first one.',
+  'rewardsRedeem': 'Redeem rewards',
+  'rewardsRedeemSoon':
+      'Soon you will be able to swap coins for rewards. Keep collecting!',
+
+  // ── Special survey ──
+  'surveySubmit': 'Submit',
+  'surveyThanks': 'Thank you!',
+  'surveyCoinsAdded': 'coins added',
+  'surveyAnswerAll': 'Please answer every question.',
+  'surveyTypeAnswer': 'Type your answer',
+  'surveyNewBadge': 'New survey',
+  'surveyEarn': 'Earn',
+
+  // ── Home ──
+  'tipOfTheDay': 'Tip of the day',
+
+  // ── Check tab ──
+  'lastCheckTitle': 'Your last check',
+  'lastCheckNextIn': 'Next check in',
+  'lastCheckDueNow': 'Time for a new check',
+  'lastCheckSeeResults': 'See results',
+
+  // ── Profile: weekly summary ──
+  'weeklyTitle': 'This week',
+  'weeklyAverage': 'Average score',
+  'weeklyDaysLogged': 'Days logged',
+  'weeklyBest': 'Best day',
+  'weeklyVsLast': 'vs last week',
+  'weeklyEmpty': 'Log a day on the Home page to see your weekly summary.',
+
+  // ── Settings ──
+  'settingsTitle': 'Settings',
+  'settingsLanguage': 'Language',
+  'settingsReminder': 'Daily reminder',
+  'settingsReminderSoon': 'Coming soon: a reminder to log your day.',
+  'settingsAccount': 'Account',
+  'settingsPrivacyData': 'Privacy & data',
+  'settingsDownload': 'Download my data',
+  'settingsDownloadBody': 'A copy of everything LivrCheck stores about you.',
+  'settingsCopy': 'Copy to clipboard',
+  'settingsCopied': 'Copied. Paste it into a note or email to keep it.',
+  'settingsAbout': 'About',
+  'settingsVersion': 'Version',
+  'settingsContact': 'Contact & feedback',
 };

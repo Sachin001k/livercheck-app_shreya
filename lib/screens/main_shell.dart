@@ -5,8 +5,9 @@ import '../services/data_service.dart';
 import '../survey/health_survey_screen.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
+import '../rewards/rewards_screen.dart';
 
-/// The signed-in app: Home, Check (health survey) and Profile tabs.
+/// The signed-in app: Home, Check (health survey), Rewards and Profile tabs.
 class MainShell extends StatefulWidget {
   final Profile profile;
   final VoidCallback onProfileChanged;
@@ -26,7 +27,12 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
-    final titles = [context.t('appTitle'), 'Health check', context.t('navProfile')];
+    final titles = [
+      context.t('appTitle'),
+      'Health check',
+      context.t('navRewards'),
+      context.t('navProfile'),
+    ];
     return Scaffold(
       appBar: AppBar(
         title: Text(titles[_index]),
@@ -53,8 +59,9 @@ class _MainShellState extends State<MainShell> {
                 HealthSurveyScreen(
                   profile: widget.profile,
                   onProfileChanged: widget.onProfileChanged,
-                  onOpenProfile: () => setState(() => _index = 2),
+                  onOpenProfile: () => setState(() => _index = 3),
                 ),
+                const RewardsScreen(),
                 ProfileScreen(
                   profile: widget.profile,
                   onProfileChanged: widget.onProfileChanged,
@@ -78,6 +85,11 @@ class _MainShellState extends State<MainShell> {
             icon: const Icon(Icons.monitor_heart_outlined),
             selectedIcon: const Icon(Icons.monitor_heart),
             label: context.t('navCheck'),
+          ),
+          NavigationDestination(
+            icon: const Icon(Icons.emoji_events_outlined),
+            selectedIcon: const Icon(Icons.emoji_events),
+            label: context.t('navRewards'),
           ),
           NavigationDestination(
             icon: const Icon(Icons.person_outline),

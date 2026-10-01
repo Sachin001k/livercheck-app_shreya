@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:livrcheck_app/app_language.dart';
 import 'package:livrcheck_app/onboarding/consent_screen.dart';
 import 'package:livrcheck_app/onboarding/welcome_screen.dart';
+import 'package:livrcheck_app/screens/delete_account_dialog.dart';
 
 Widget _app(Widget home) => MaterialApp(
       builder: (context, child) => LanguageScope(notifier: appLanguage, child: child!),
@@ -46,5 +47,34 @@ void main() {
     await tester.tap(boxes.at(1));
     await tester.pump();
     expect(agree().onPressed, isNotNull);
+  });
+
+  testWidgets('delete account: button only works after typing DELETE', (tester) async {
+    await tester.pumpWidget(_app(Scaffold(
+      body: Builder(
+        builder: (context) => TextButton(
+          onPressed: () => showDeleteAccountDialog(context),
+          child: const Text('open'),
+        ),
+      ),
+    )));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    FilledButton confirm() => tester.widget<FilledButton>(find.byType(FilledButton));
+    expect(find.text('Delete your account?'), findsOneWidget);
+    expect(confirm().onPressed, isNull);
+
+    await tester.enterText(find.byType(TextField), 'delet');
+    await tester.pump();
+    expect(confirm().onPressed, isNull);
+
+    await tester.enterText(find.byType(TextField), 'delete');
+    await tester.pump();
+    expect(confirm().onPressed, isNotNull);
+
+    await tester.tap(find.text('Cancel'));
+    await tester.pumpAndSettle();
+    expect(find.text('Delete your account?'), findsNothing);
   });
 }
