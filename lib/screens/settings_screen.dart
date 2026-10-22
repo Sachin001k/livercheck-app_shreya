@@ -159,6 +159,7 @@ class _ExportDialogState extends State<_ExportDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      scrollable: true,
       title: Text(context.t('settingsDownload')),
       content: SizedBox(
         width: 480,

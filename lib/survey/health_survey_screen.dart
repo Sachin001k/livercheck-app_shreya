@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../app_language.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
+import '../widgets/tab_back.dart';
 import 'assess.dart';
 import 'body_map.dart';
 import 'health_ui.dart';
@@ -20,11 +21,20 @@ class HealthSurveyScreen extends StatefulWidget {
   /// Switches the app to the Profile tab.
   final VoidCallback onOpenProfile;
 
+  /// Whether the Check tab is the one on screen. Back is only taken over
+  /// (previous question) while it is.
+  final bool isActive;
+
+  /// Hooked up by the shell so Android back goes to the previous question.
+  final TabBack? back;
+
   const HealthSurveyScreen({
     super.key,
     required this.profile,
     required this.onProfileChanged,
     required this.onOpenProfile,
+    this.isActive = true,
+    this.back,
   });
   @override
   State<HealthSurveyScreen> createState() => _HealthSurveyScreenState();
@@ -56,12 +66,14 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
   @override
   void dispose() {
     ProgressStore.changes.removeListener(_loadLast);
+    if (widget.back?.handler == _handleBack) widget.back?.handler = null;
     super.dispose();
   }
 
   @override
   void initState() {
     super.initState();
+    widget.back?.handler = _handleBack;
     _loadLast();
     ProgressStore.changes.addListener(_loadLast);
     // Pre-fill what the profile already knows; the user only confirms.
@@ -94,6 +106,16 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
     }
   });
 
+  /// Mid-survey, Android back goes to the previous question (and from the
+  /// first question back to the intro) instead of leaving the tab.
+  bool get _wantsBack => _started && !_saving;
+
+  bool _handleBack() {
+    if (!widget.isActive || !_wantsBack) return false;
+    _back();
+    return true;
+  }
+
   void _next() {
     if (_step >= _visible.length - 1) {
       _finish();
@@ -108,6 +130,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
     if (input['hasReport'] != 'yes') input.remove('labs');
     final result = assess(input);
 
+    final unknownError = context.t('sv_unknownError');
     setState(() => _saving = true);
     Future<String?> save() async {
       try {
@@ -115,7 +138,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
         widget.onProfileChanged();
         return null;
       } catch (e) {
-        return AuthService.describeError(e, 'Unknown error');
+        return AuthService.describeError(e, unknownError);
       }
     }
 
@@ -141,21 +164,26 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
   @override
   Widget build(BuildContext context) {
     if (_saving) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Saving your results…'),
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(context.t('sv_savingResults')),
           ],
         ),
       );
     }
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: _started ? _question(context) : _intro(context),
+    // Blocks the shell from leaving the tab while a question is shown;
+    // MainShell then calls [_handleBack] through [TabBack].
+    return PopScope(
+      canPop: !(widget.isActive && _wantsBack),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: _started ? _question(context) : _intro(context),
+        ),
       ),
     );
   }
@@ -163,11 +191,24 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
   Widget _intro(BuildContext context) {
     final t = Theme.of(context).textTheme;
     final cs = Theme.of(context).colorScheme;
-    const points = [
-      'About 2 minutes, one question at a time',
-      'See which organs need care: liver, heart, kidneys, lungs and blood sugar',
-      'Get a food and exercise plan made for you',
-    ];
+    const points = ['sv_introPoint1', 'sv_introPoint2', 'sv_introPoint3'];
+    // With large text the headline beside the body map would break words
+    // mid-way, so the map moves below it.
+    final largeText = MediaQuery.textScalerOf(context).scale(1) > 1.3;
+    final headline = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          context.t('sv_introTitle'),
+          style: t.headlineMedium?.copyWith(fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          context.t('sv_introSubtitle'),
+          style: t.bodyLarge?.copyWith(color: cs.onSurfaceVariant),
+        ),
+      ],
+    );
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
       children: [
@@ -180,32 +221,18 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'How is your body doing?',
-                          style: t.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Answer by tapping. No blood report needed.',
-                          style: t.bodyLarge?.copyWith(
-                            color: cs.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  const SizedBox(width: 110, child: BodyMap()),
-                ],
-              ),
+              if (largeText) ...[
+                headline,
+                const SizedBox(height: 12),
+                const Center(child: SizedBox(width: 110, child: BodyMap())),
+              ] else
+                Row(
+                  children: [
+                    Expanded(child: headline),
+                    const SizedBox(width: 12),
+                    const SizedBox(width: 110, child: BodyMap()),
+                  ],
+                ),
               const SizedBox(height: 20),
               for (final s in points)
                 Padding(
@@ -220,18 +247,18 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
                           backgroundColor: cs.primary,
                         ),
                       ),
-                      Expanded(child: Text(s, style: t.bodyLarge)),
+                      Expanded(child: Text(context.t(s), style: t.bodyLarge)),
                     ],
                   ),
                 ),
               const SizedBox(height: 20),
-              BigButton(label: 'Start my check', onPressed: _start),
+              BigButton(label: context.t('sv_startCheck'), onPressed: _start),
             ],
           ),
         ),
         const SizedBox(height: 16),
         Text(
-          kDisclaimer,
+          context.t(kDisclaimer),
           style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant),
         ),
       ],
@@ -279,7 +306,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
             IconButton.filledTonal(
               onPressed: _back,
               icon: const Icon(Icons.chevron_left),
-              tooltip: 'Back',
+              tooltip: context.t('sv_back'),
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -292,7 +319,10 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
               ),
             ),
             const SizedBox(width: 12),
-            Text('${_step + 1} of ${v.length}', style: t.bodySmall),
+            Text(
+              context.tf('sv_stepOf', {'n': _step + 1, 'total': v.length}),
+              style: t.bodySmall,
+            ),
           ],
         ),
         const SizedBox(height: 16),
@@ -302,7 +332,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                q.title,
+                context.t(q.title),
                 style: t.headlineSmall?.copyWith(fontWeight: FontWeight.w700),
               ),
               if (q.why != null)
@@ -314,7 +344,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
                     borderRadius: BorderRadius.circular(14),
                   ),
                   child: Text(
-                    q.why!,
+                    context.t(q.why!),
                     style: TextStyle(color: cs.onSecondaryContainer),
                   ),
                 ),
@@ -380,7 +410,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
           ),
         const SizedBox(height: 12),
         BigButton(
-          label: 'Continue',
+          label: context.t('continueButton'),
           onPressed: cur.isEmpty
               ? null
               : () {
@@ -418,7 +448,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
               ),
               if (!unknown)
                 TextSpan(
-                  text: ' ${q.unit}',
+                  text: ' ${context.t(q.unit)}',
                   style: TextStyle(fontSize: 18, color: cs.onSurfaceVariant),
                 ),
             ],
@@ -427,8 +457,8 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
         const SizedBox(height: 6),
         Text(
           unknown
-              ? 'We will estimate it from your height and weight'
-              : (q.alt?.call(v) ?? ''),
+              ? context.t('sv_waistEstimateNote')
+              : trText(context, q.alt?.call(v) ?? ''),
           style: TextStyle(color: cs.onSurfaceVariant),
         ),
         const SizedBox(height: 16),
@@ -437,7 +467,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
             IconButton.outlined(
               onPressed: () => update(v - q.step),
               icon: const Icon(Icons.remove),
-              tooltip: 'Less',
+              tooltip: context.t('sv_less'),
             ),
             Expanded(
               child: Slider(
@@ -452,13 +482,13 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
             IconButton.outlined(
               onPressed: () => update(v + q.step),
               icon: const Icon(Icons.add),
-              tooltip: 'More',
+              tooltip: context.t('sv_more'),
             ),
           ],
         ),
         const SizedBox(height: 20),
         BigButton(
-          label: 'Continue',
+          label: context.t('continueButton'),
           onPressed: () {
             if (_a[q.id] == null) _a[q.id] = q.def;
             _next();
@@ -467,7 +497,7 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
         if (q.unknownLabel != null) ...[
           const SizedBox(height: 10),
           BigButton(
-            label: q.unknownLabel!,
+            label: context.t(q.unknownLabel!),
             outlined: true,
             onPressed: () {
               _a[q.id] = null;
@@ -526,7 +556,7 @@ class _OptionCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        opt.label,
+                        context.t(opt.label),
                         style: const TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w700,
@@ -534,7 +564,7 @@ class _OptionCard extends StatelessWidget {
                       ),
                       if (opt.sub != null)
                         Text(
-                          opt.sub!,
+                          context.t(opt.sub!),
                           style: TextStyle(
                             fontSize: 14,
                             color: cs.onSurfaceVariant,
@@ -563,8 +593,7 @@ class _LabsStep extends StatefulWidget {
 
 class _LabsStepState extends State<_LabsStep> {
   static const _keys = ['ast', 'alt', 'plt'];
-  static const _warnText =
-      'This looks unusual. Please check the number on your report.';
+  static const _warnText = 'sv_labWarnUnusual';
   late final Map<String, TextEditingController> _c = {
     for (final k in _keys)
       k: TextEditingController(text: widget.labs[k]?.toString() ?? ''),
@@ -620,11 +649,11 @@ class _LabsStepState extends State<_LabsStep> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            label,
+            context.t(label),
             style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 17),
           ),
           Text(
-            hint,
+            context.t(hint),
             style: TextStyle(fontSize: 14, color: cs.onSurfaceVariant),
           ),
           const SizedBox(height: 10),
@@ -642,7 +671,7 @@ class _LabsStepState extends State<_LabsStep> {
                     fontWeight: FontWeight.w700,
                   ),
                   decoration: InputDecoration(
-                    hintText: example,
+                    hintText: context.t(example),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -666,7 +695,7 @@ class _LabsStepState extends State<_LabsStep> {
           ),
           const SizedBox(height: 8),
           FilterChip(
-            label: const Text("I don't have this"),
+            label: Text(context.t('sv_labDontHave')),
             selected: skip,
             onSelected: (s) => setState(() {
               _skip[k] = s;
@@ -680,7 +709,10 @@ class _LabsStepState extends State<_LabsStep> {
           if (_warn[k] != null)
             Padding(
               padding: const EdgeInsets.only(top: 6),
-              child: Text(_warn[k]!, style: const TextStyle(color: kHigh)),
+              child: Text(
+                context.t(_warn[k]!),
+                style: const TextStyle(color: kHigh),
+              ),
             ),
         ],
       ),
@@ -691,26 +723,14 @@ class _LabsStepState extends State<_LabsStep> {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _field(
-          'ast',
-          'AST (also called SGOT)',
-          'In the Liver Function Test section',
-          'e.g. 32',
-        ),
-        _field(
-          'alt',
-          'ALT (also called SGPT)',
-          'Right next to AST on most reports',
-          'e.g. 40',
-        ),
-        _field(
-          'plt',
-          'Platelet count',
-          'In the CBC section. Type it exactly as printed, we pick the unit.',
-          'e.g. 2.5',
-        ),
+        _field('ast', 'sv_labAst', 'sv_labAstHint', 'sv_labAstExample'),
+        _field('alt', 'sv_labAlt', 'sv_labAltHint', 'sv_labAltExample'),
+        _field('plt', 'sv_labPlt', 'sv_labPltHint', 'sv_labPltExample'),
         const SizedBox(height: 8),
-        BigButton(label: 'See my results', onPressed: widget.onDone),
+        BigButton(
+          label: context.t('sv_seeMyResults'),
+          onPressed: widget.onDone,
+        ),
       ],
     );
   }
@@ -727,20 +747,6 @@ class _LastCheckCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
-    ];
     final d = entry.date;
     final daysSince = DateTime.now().difference(d).inDays;
     final daysLeft = recheckDays - daysSince;
@@ -791,7 +797,7 @@ class _LastCheckCard extends StatelessWidget {
                   style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
                 Text(
-                  '${entry.tier.isEmpty ? '' : '${entry.tier} · '}${d.day} ${months[d.month - 1]} ${d.year}',
+                  '${entry.tier.isEmpty ? '' : '${tierText(context, entry.tier)} · '}${shortDate(context, d)}',
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
@@ -801,10 +807,10 @@ class _LastCheckCard extends StatelessWidget {
                 Text(
                   daysLeft <= 0
                       ? '⏰ ${context.t('lastCheckDueNow')}'
-                      : '${context.t('lastCheckNextIn')} $daysLeft ${context.t('daysUnit')}',
+                      : context.tf('sv_nextCheckInDays', {'n': daysLeft}),
                   style: TextStyle(
                     fontSize: 12,
-                    color: daysLeft <= 0 ? kMod : cs.onSurfaceVariant,
+                    color: daysLeft <= 0 ? kModDark : cs.onSurfaceVariant,
                   ),
                 ),
               ],

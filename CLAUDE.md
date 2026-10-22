@@ -51,7 +51,8 @@ packages `supabase_flutter`, `url_launcher`.
 | Settings (language, reminder placeholder, account, privacy & data, about) | ✅ Built |
 | Download my data | ✅ Built (copy as JSON) |
 | Phone OTP / Google sign-in | 🟡 Code ready · hidden until configured |
-| Translations | 🟡 All 197 `en.dart` keys in 9 languages · survey/results/daily log/meal names still hardcoded English (Part B) |
+| Translations | ✅ Whole app in 9 languages (≈1,030 keys; drafts) — survey, results, daily log, meals, food cards, profile, rewards, privacy policy. Only special-survey content (from the database) and units/abbreviations stay English |
+| Android release setup | ✅ Package `in.livrcheck.app`, versionName "1.0.0", release signing via `android/key.properties` · ⬜ create upload key, app icon |
 | Web app (public test link) | ✅ **https://livrcheck.vercel.app** (Vercel account `sachin001k`, project `livrcheck`) · ⬜ add it to Supabase URL Configuration |
 | Git / GitHub | ✅ **Public** repo [Sachin001k/livercheck-app_shreya](https://github.com/Sachin001k/livercheck-app_shreya), branch `main` |
 
@@ -75,7 +76,7 @@ flutter run -d web-server --web-port 8080 --dart-define-from-file=env.json
 - After big changes, stop (`q`), run again, and hard-reload the browser
   (Cmd+Shift+R).
 
-Checks: `flutter analyze lib test` (must be clean) · `flutter test` (48 tests, all passing).
+Checks: `flutter analyze lib test` (must be clean) · `flutter test` (all passing).
 
 Save work to GitHub: `git add . && git commit -m "What changed" && git push`.
 The repo is **public** — never commit `env.json` or real keys (check `git status` before committing).
@@ -211,6 +212,8 @@ main.dart ── OnboardingPrefs.init ── Supabase.initialize (if env present
 | `lib/daily/weekly_summary.dart` | This week vs last week maths |
 | `lib/screens/settings_screen.dart` | Settings + Download my data dialog |
 | `lib/widgets/home_extras.dart` | Special survey banner, Tip of the day |
+| `lib/widgets/tab_back.dart` | Android back button: the visible tab (survey, daily log) handles back before the bottom tabs go to Home |
+| `web/privacy.html`, `web/delete-account.html` | Public privacy policy + account-deletion pages (Play Store needs them) |
 | `lib/widgets/skeleton.dart` | Shimmer placeholders (`Skeleton`, `SkeletonList`) |
 | `lib/widgets/friendly_state.dart` | Friendly empty/error states; `friendlyError()` plain-language messages |
 | `supabase/migrations/*.sql` | Database schema (see §6) |
@@ -379,8 +382,13 @@ per hour outside 7–9. Sweets: 0 → 1, 1 → 0.6, 2 → 0.3, 3+ → 0.
 ### 7.7 Languages
 - 9 languages; picker in the login screen and app bar; saved per user.
 - Text via `context.t('key')`; missing keys fall back to English.
-- **English only for now:** health check, results, daily check-in,
-  profile additions, food content.
+- Everything is translated (22 Oct 2026). Data files (questions, assess,
+  meals, food cards, badges) store **keys**, translated when shown.
+  Text with numbers: `context.tf('key', {'n': 5})` with `{n}` in the text.
+  Saved health-check results store keys as `key|name=value`
+  (`textRef()` / `trText()` in `survey/`); older rows in English still show.
+- Key prefixes: `sv_` survey · `hm_` home/food · `dl_` daily · `ml_` meals ·
+  `er_` errors · `pf_` profile/settings · `rw_` rewards · `pp_` privacy · `au_` auth.
 - Edit only the text on the **right** of each line; keys on the left must
   match `en.dart`.
 
@@ -424,7 +432,8 @@ Types: `choice`, `multi`, `scale` (1–5), `text`. It shows while
   inside white cards are visible.
 
 - Colours: `tealDark`, `tealLight`, `mintCard` (`theme.dart`); risk colours
-  `kLow` green, `kMod` amber, `kHigh` red (`health_ui.dart`).
+  `kLow` green, `kMod` amber, `kHigh` red (`health_ui.dart`). Use `kModDark`
+  (#8A5A00) behind or as white-on/small text — light amber fails contrast.
 - **`SurfaceCard`** — white card, soft border + shadow; use it for any
   content that sits on the tinted background.
 - `BigButton` — 56 px full-width primary / outlined button.
@@ -491,6 +500,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ✅ Large-text support on Home, haptics, pull to refresh, visible ripples
 - ⬜ Dark mode
 - ⬜ Screen-reader labels review
+- ✅ Android phone polish (22 Oct 2026): no overflows at 360 dp / large text, keyboard-safe sheets & dialogs, back button goes Home / previous question, light status bar on teal screens, darker amber for contrast
 
 ### App structure — done 1 Oct 2026
 - ✅ 4 tabs: Home · Check · Rewards · Profile
@@ -507,13 +517,16 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 ### Later / release
 - ✅ Web deployed to https://livrcheck.vercel.app (`./scripts/deploy_web.sh`) · ⬜ Supabase Site URL / Redirect URLs updated
 - ⬜ Play Store: developer account (👤), package name, icon, signing key, AAB build, listing, policies — see `docs/PLAY_STORE_GUIDE.md`
-- ⬜ Public pages on the website: privacy policy, account-deletion request
+- ✅ Public pages (drafts): `web/privacy.html`, `web/delete-account.html` → live at livrcheck.vercel.app/… after the next deploy
+- ✅ Package name `in.livrcheck.app`, versionName "1.0.0", release signing config (`android/key.properties`, template `android/key.properties.example`)
+- ⬜ Create the upload keystore (`docs/PLAY_STORE_GUIDE.md` §2) · ⬜ app icon (needs a 1024×1024 logo)
 - ⬜ Custom SMTP email provider (Supabase's built-in email is ~2/hour) and turn **Confirm email** back on if disabled for testing
 - ⬜ **Data safety:** upgrade Supabase to Pro (daily backups) **when publishing to the Play Store** — decided 1 Oct 2026. Until then the free plan is used daily (it only pauses after 7 idle days) and has no automatic backups.
+- 🟡 **Keep-alive:** `.github/workflows/supabase-keep-alive.yml` queries the database every 3 days so the free project never pauses. Needs repo secrets `SUPABASE_URL` + `SUPABASE_ANON_KEY` (GitHub → Settings → Secrets and variables → Actions). GitHub stops scheduled workflows after 60 days with no commits — re-enable from the Actions tab if that happens.
 - ⬜ Offline saving: queue check-ins / logs without internet and sync later (today they fail with an error)
 - ⬜ Streak freeze: spend coins to protect a missed day (good first "Redeem rewards" item)
 - ✅ Translations Part A: every `en.dart` key translated into all 8 languages (drafts)
-- ⬜ Translations Part B: move hardcoded text (survey questions, results, assess reasons, daily log items, meal names, profile labels, privacy policy) into `en.dart`, then translate
+- ✅ Translations Part B: all hardcoded text moved into `en.dart` and translated into 8 languages (22 Oct 2026, drafts)
 - ⬜ Native-speaker review of translations; doctor/dietitian review of all health text
 - ⬜ Weekly summary on Profile (average daily score, trend)
 - ⬜ More user details (to be provided by product owner)
@@ -525,7 +538,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 ---
 
 ## 10. Testing
-`flutter test` — 41 tests:
+`flutter test` — 57 tests:
 | File | Covers |
 |---|---|
 | `fib4_test.dart` | FIB-4 formula, tiers, BMI, invalid input |
@@ -536,6 +549,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 | `home_screen_test.dart` | food card opens pop-up; all 8 pop-ups lay out; Home at 1.5× text has no overflow |
 | `onboarding_test.dart` | welcome slides advance to Get started; consent needs both ticks; delete needs "DELETE" typed |
 | `meal_catalog_test.dart` | meal totals (kcal, fruit & veg, sweets), unique food ids |
+| `phone_layout_test.dart` | 360×640 phone at 1.0/1.5/2.0× text: Profile stat cards, Rewards badges, `BigButton` don't overflow |
 | `rewards_test.dart` | badge thresholds, weekly summary maths, special survey JSON parsing |
 
 Notes: Supabase isn't initialised in tests, so saves fail there (the UI
@@ -596,8 +610,7 @@ screenshot with headless Chrome, then **delete the preview files**.
 - **Legal pending — DPDP Act:** data from under-18s needs verifiable
   parent/guardian consent. Add a parent-consent step or an age limit
   before public launch (confirm with a legal adviser).
-- Privacy policy contact email is a placeholder (`privacy@livrcheck.example`).
-- Meal names and the privacy policy are English only (welcome/consent text is in `en.dart`).
+- Support / privacy email is a placeholder (`support@livrcheck.example`) in `lib/config.dart`, `web/privacy.html`, `web/delete-account.html`.
 - App name spelling is mixed: older `appTitle` entries use local script (e.g. लिवरचेक), newer strings use Latin "LivrCheck". Pick one.
 - `livrcheck_flutter/` is an outdated copy of the original code and doesn't
   compile — delete once `SETUP.md` isn't needed.

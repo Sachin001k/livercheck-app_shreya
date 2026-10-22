@@ -3,20 +3,31 @@
 /// recipes). DRAFT values — portions and oil vary a lot between homes.
 library;
 
+import '../translations.dart';
+
 enum MealCategory { breakfast, mains, snacks, drinksSweets }
 
+/// Emoji and translation key for each group's heading.
 const mealCategoryLabels = {
-  MealCategory.breakfast: '🌅 Breakfast',
-  MealCategory.mains: '🍛 Lunch & dinner',
-  MealCategory.snacks: '🥨 Snacks & fruit',
-  MealCategory.drinksSweets: '🥤 Drinks & sweets',
+  MealCategory.breakfast: (emoji: '🌅', key: 'ml_catBreakfast'),
+  MealCategory.mains: (emoji: '🍛', key: 'ml_catMains'),
+  MealCategory.snacks: (emoji: '🥨', key: 'ml_catSnacks'),
+  MealCategory.drinksSweets: (emoji: '🥤', key: 'ml_catDrinksSweets'),
 };
+
+/// Heading for [category] in [lang], e.g. "🌅 Breakfast".
+String mealCategoryLabel(MealCategory category, AppLanguage lang) {
+  final l = mealCategoryLabels[category]!;
+  return '${l.emoji} ${tr(lang, l.key)}';
+}
 
 class MealFood {
   final String id;
   final String emoji;
-  final String name;
-  final String portion;
+  /// Translation keys for the food's name and portion size. The [id] is
+  /// what gets saved, so names can change without breaking old logs.
+  final String nameKey;
+  final String portionKey;
   final int kcal;
   final MealCategory category;
 
@@ -29,90 +40,99 @@ class MealFood {
   const MealFood(
     this.id,
     this.emoji,
-    this.name,
-    this.portion,
+    this.nameKey,
+    this.portionKey,
     this.kcal,
     this.category, {
     this.fruitVeg = false,
     this.sweet = false,
   });
+
+  String name(AppLanguage lang) => tr(lang, nameKey);
+  String portion(AppLanguage lang) => tr(lang, portionKey);
+
+  /// True if [query] (lower case) is in the name in [lang] or in English.
+  bool matches(String query, AppLanguage lang) =>
+      query.isEmpty ||
+      name(lang).toLowerCase().contains(query) ||
+      name(AppLanguage.en).toLowerCase().contains(query);
 }
 
 const List<MealFood> mealFoods = [
   // Breakfast
-  MealFood('poha', '🍚', 'Poha', '1 plate', 250, MealCategory.breakfast),
-  MealFood('upma', '🥣', 'Upma', '1 plate', 250, MealCategory.breakfast),
-  MealFood('idli', '⚪', 'Idli', '1 piece', 60, MealCategory.breakfast),
-  MealFood('dosa', '🫓', 'Plain dosa', '1 dosa', 170, MealCategory.breakfast),
+  MealFood('poha', '🍚', 'ml_poha', 'ml_pPlate', 250, MealCategory.breakfast),
+  MealFood('upma', '🥣', 'ml_upma', 'ml_pPlate', 250, MealCategory.breakfast),
+  MealFood('idli', '⚪', 'ml_idli', 'ml_pPiece', 60, MealCategory.breakfast),
+  MealFood('dosa', '🫓', 'ml_dosa', 'ml_pDosa', 170, MealCategory.breakfast),
   MealFood(
     'paratha',
     '🫓',
-    'Plain paratha',
-    '1 piece',
+    'ml_paratha',
+    'ml_pPiece',
     200,
     MealCategory.breakfast,
   ),
   MealFood(
     'aloo_paratha',
     '🥔',
-    'Aloo paratha',
-    '1 piece',
+    'ml_alooParatha',
+    'ml_pPiece',
     300,
     MealCategory.breakfast,
   ),
-  MealFood('bread', '🍞', 'Bread', '1 slice', 70, MealCategory.breakfast),
+  MealFood('bread', '🍞', 'ml_bread', 'ml_pSlice', 70, MealCategory.breakfast),
   MealFood(
     'oats',
     '🥣',
-    'Oats porridge',
-    '1 bowl',
+    'ml_oats',
+    'ml_pBowl',
     150,
     MealCategory.breakfast,
   ),
-  MealFood('egg', '🥚', 'Boiled egg', '1 egg', 75, MealCategory.breakfast),
-  MealFood('omelette', '🍳', 'Omelette', '2 eggs', 190, MealCategory.breakfast),
+  MealFood('egg', '🥚', 'ml_egg', 'ml_pEgg', 75, MealCategory.breakfast),
+  MealFood('omelette', '🍳', 'ml_omelette', 'ml_pTwoEggs', 190, MealCategory.breakfast),
 
   // Lunch & dinner
-  MealFood('roti', '🫓', 'Roti / chapati', '1 roti', 100, MealCategory.mains),
-  MealFood('rice', '🍚', 'Rice', '1 katori', 200, MealCategory.mains),
-  MealFood('dal', '🥣', 'Dal', '1 katori', 150, MealCategory.mains),
-  MealFood('rajma', '🫘', 'Rajma / chole', '1 katori', 200, MealCategory.mains),
+  MealFood('roti', '🫓', 'ml_roti', 'ml_pRoti', 100, MealCategory.mains),
+  MealFood('rice', '🍚', 'ml_rice', 'ml_pKatori', 200, MealCategory.mains),
+  MealFood('dal', '🥣', 'ml_dal', 'ml_pKatori', 150, MealCategory.mains),
+  MealFood('rajma', '🫘', 'ml_rajma', 'ml_pKatori', 200, MealCategory.mains),
   MealFood(
     'sabzi',
     '🥬',
-    'Vegetable sabzi',
-    '1 katori',
+    'ml_sabzi',
+    'ml_pKatori',
     120,
     MealCategory.mains,
     fruitVeg: true,
   ),
-  MealFood('paneer', '🧀', 'Paneer sabzi', '1 katori', 280, MealCategory.mains),
+  MealFood('paneer', '🧀', 'ml_paneer', 'ml_pKatori', 280, MealCategory.mains),
   MealFood(
     'chicken',
     '🍗',
-    'Chicken curry',
-    '1 katori',
+    'ml_chicken',
+    'ml_pKatori',
     250,
     MealCategory.mains,
   ),
-  MealFood('fish', '🐟', 'Fish curry', '1 katori', 200, MealCategory.mains),
-  MealFood('curd', '🥛', 'Curd / raita', '1 katori', 100, MealCategory.mains),
+  MealFood('fish', '🐟', 'ml_fish', 'ml_pKatori', 200, MealCategory.mains),
+  MealFood('curd', '🥛', 'ml_curd', 'ml_pKatori', 100, MealCategory.mains),
   MealFood(
     'salad',
     '🥗',
-    'Salad',
-    '1 bowl',
+    'ml_salad',
+    'ml_pBowl',
     40,
     MealCategory.mains,
     fruitVeg: true,
   ),
-  MealFood('khichdi', '🍲', 'Khichdi', '1 bowl', 250, MealCategory.mains),
-  MealFood('biryani', '🍛', 'Biryani', '1 plate', 500, MealCategory.mains),
+  MealFood('khichdi', '🍲', 'ml_khichdi', 'ml_pBowl', 250, MealCategory.mains),
+  MealFood('biryani', '🍛', 'ml_biryani', 'ml_pPlate', 500, MealCategory.mains),
   MealFood(
     'thali',
     '🍱',
-    'Full home thali',
-    '1 thali',
+    'ml_thali',
+    'ml_pThali',
     700,
     MealCategory.mains,
     fruitVeg: true,
@@ -122,18 +142,18 @@ const List<MealFood> mealFoods = [
   MealFood(
     'fruit',
     '🍎',
-    'Fruit',
-    '1 medium',
+    'ml_fruit',
+    'ml_pMedium',
     70,
     MealCategory.snacks,
     fruitVeg: true,
   ),
-  MealFood('nuts', '🥜', 'Nuts', '1 handful', 180, MealCategory.snacks),
+  MealFood('nuts', '🥜', 'ml_nuts', 'ml_pHandful', 180, MealCategory.snacks),
   MealFood(
     'sprouts',
     '🌱',
-    'Sprouts chaat',
-    '1 bowl',
+    'ml_sprouts',
+    'ml_pBowl',
     150,
     MealCategory.snacks,
     fruitVeg: true,
@@ -141,26 +161,26 @@ const List<MealFood> mealFoods = [
   MealFood(
     'makhana',
     '🍿',
-    'Roasted makhana',
-    '1 bowl',
+    'ml_makhana',
+    'ml_pBowl',
     100,
     MealCategory.snacks,
   ),
-  MealFood('samosa', '🥟', 'Samosa', '1 piece', 250, MealCategory.snacks),
-  MealFood('pakora', '🍤', 'Pakora', '4 pieces', 200, MealCategory.snacks),
+  MealFood('samosa', '🥟', 'ml_samosa', 'ml_pPiece', 250, MealCategory.snacks),
+  MealFood('pakora', '🍤', 'ml_pakora', 'ml_pFourPieces', 200, MealCategory.snacks),
   MealFood(
     'biscuits',
     '🍪',
-    'Biscuits',
-    '4 biscuits',
+    'ml_biscuits',
+    'ml_pFourBiscuits',
     120,
     MealCategory.snacks,
   ),
   MealFood(
     'namkeen',
     '🥨',
-    'Namkeen / chips',
-    '1 handful',
+    'ml_namkeen',
+    'ml_pHandful',
     160,
     MealCategory.snacks,
   ),
@@ -169,8 +189,8 @@ const List<MealFood> mealFoods = [
   MealFood(
     'chai',
     '🍵',
-    'Chai with sugar',
-    '1 cup',
+    'ml_chai',
+    'ml_pCup',
     80,
     MealCategory.drinksSweets,
     sweet: true,
@@ -178,8 +198,8 @@ const List<MealFood> mealFoods = [
   MealFood(
     'coffee_milk',
     '☕',
-    'Coffee with sugar',
-    '1 cup',
+    'ml_coffeeMilk',
+    'ml_pCup',
     90,
     MealCategory.drinksSweets,
     sweet: true,
@@ -187,16 +207,16 @@ const List<MealFood> mealFoods = [
   MealFood(
     'black_tea',
     '🫖',
-    'Black tea / coffee, no sugar',
-    '1 cup',
+    'ml_blackTea',
+    'ml_pCup',
     5,
     MealCategory.drinksSweets,
   ),
   MealFood(
     'cold_drink',
     '🥤',
-    'Cold drink',
-    '1 glass',
+    'ml_coldDrink',
+    'ml_pGlass',
     130,
     MealCategory.drinksSweets,
     sweet: true,
@@ -204,8 +224,8 @@ const List<MealFood> mealFoods = [
   MealFood(
     'juice',
     '🧃',
-    'Packaged juice',
-    '1 glass',
+    'ml_juice',
+    'ml_pGlass',
     100,
     MealCategory.drinksSweets,
     sweet: true,
@@ -213,8 +233,8 @@ const List<MealFood> mealFoods = [
   MealFood(
     'lassi',
     '🥛',
-    'Sweet lassi',
-    '1 glass',
+    'ml_lassi',
+    'ml_pGlass',
     220,
     MealCategory.drinksSweets,
     sweet: true,
@@ -222,8 +242,8 @@ const List<MealFood> mealFoods = [
   MealFood(
     'mithai',
     '🍬',
-    'Mithai',
-    '1 piece',
+    'ml_mithai',
+    'ml_pPiece',
     150,
     MealCategory.drinksSweets,
     sweet: true,
@@ -231,8 +251,8 @@ const List<MealFood> mealFoods = [
   MealFood(
     'ice_cream',
     '🍨',
-    'Ice cream',
-    '1 scoop',
+    'ml_iceCream',
+    'ml_pScoop',
     140,
     MealCategory.drinksSweets,
     sweet: true,
@@ -240,8 +260,8 @@ const List<MealFood> mealFoods = [
   MealFood(
     'chocolate',
     '🍫',
-    'Chocolate',
-    '1 small bar',
+    'ml_chocolate',
+    'ml_pSmallBar',
     200,
     MealCategory.drinksSweets,
     sweet: true,

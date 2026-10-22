@@ -53,18 +53,22 @@ class ProgressStore {
       try {
         final json = row['result'];
         if (json != null) {
-          result = AssessmentResult.fromJson(Map<String, dynamic>.from(json as Map));
+          result = AssessmentResult.fromJson(
+            Map<String, dynamic>.from(json as Map),
+          );
         }
       } catch (e) {
         debugPrint('Could not read saved result ${row['id']}: $e');
       }
-      history.add(ScoreEntry(
-        row['id'] as String,
-        DateTime.parse(row['created_at'] as String).toLocal(),
-        (row['score'] as num?)?.toInt() ?? 0,
-        row['tier'] as String? ?? '',
-        result,
-      ));
+      history.add(
+        ScoreEntry(
+          row['id'] as String,
+          DateTime.parse(row['created_at'] as String).toLocal(),
+          (row['score'] as num?)?.toInt() ?? 0,
+          row['tier'] as String? ?? '',
+          result,
+        ),
+      );
     }
 
     return ProgressData(history);
@@ -72,7 +76,10 @@ class ProgressStore {
 
   /// Saves a finished health check. Also records the FIB-4 score (when
   /// blood values were entered) and updates age/height/weight on the profile.
-  static Future<void> saveResult(AssessmentResult r, Map<String, dynamic> answers) async {
+  static Future<void> saveResult(
+    AssessmentResult r,
+    Map<String, dynamic> answers,
+  ) async {
     await _db.from('survey_responses').insert({
       'survey_version': 'v1',
       'answers': answers,
@@ -91,9 +98,15 @@ class ProgressStore {
         'ast': labs['ast'],
         'alt': labs['alt'],
         'platelets': plateletsToG(
-            (labs['plt'] as num).toDouble(), labs['unit'] as String? ?? 'lakh'),
+          (labs['plt'] as num).toDouble(),
+          labs['unit'] as String? ?? 'lakh',
+        ),
         'fib4_score': fib4,
-        'risk_tier': fib4 > 2.67 ? 'high' : fib4 >= lowCut ? 'intermediate' : 'low',
+        'risk_tier': fib4 > 2.67
+            ? 'high'
+            : fib4 >= lowCut
+            ? 'intermediate'
+            : 'low',
         'height_cm': answers['height'],
         'weight_kg': answers['weight'],
         'bmi': r.bmi,

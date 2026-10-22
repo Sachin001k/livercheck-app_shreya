@@ -3,13 +3,16 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../app_language.dart';
 import '../services/auth_service.dart';
 import '../services/data_service.dart';
 import '../streak.dart';
 import '../survey/health_ui.dart';
 import '../theme.dart';
+import '../translations.dart';
 import '../widgets/friendly_state.dart';
 import '../widgets/skeleton.dart';
+import '../widgets/tab_back.dart';
 import 'daily_items.dart';
 import 'meal_catalog.dart';
 import 'meal_picker_sheet.dart';
@@ -28,7 +31,18 @@ double dailyCardHeight(BuildContext context) {
 class DailyCheckinCard extends StatefulWidget {
   final Profile profile;
 
-  const DailyCheckinCard({super.key, required this.profile});
+  /// Whether the Home tab is on screen. Back only closes the log while it is.
+  final bool isActive;
+
+  /// Hooked up by the shell so Android back closes the log first.
+  final TabBack? back;
+
+  const DailyCheckinCard({
+    super.key,
+    required this.profile,
+    this.isActive = true,
+    this.back,
+  });
 
   @override
   State<DailyCheckinCard> createState() => _DailyCheckinCardState();
@@ -74,10 +88,28 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
     )..repeat(reverse: true);
     _load();
     DataService.changes.addListener(_load);
+    widget.back?.handler = _handleBack;
+  }
+
+  @override
+  void didUpdateWidget(DailyCheckinCard old) {
+    super.didUpdateWidget(old);
+    if (old.back != widget.back) {
+      if (old.back?.handler == _handleBack) old.back?.handler = null;
+      widget.back?.handler = _handleBack;
+    }
+  }
+
+  /// Android back while logging closes the log (like the ✕ button).
+  bool _handleBack() {
+    if (!widget.isActive || _phase != _Phase.logging) return false;
+    setState(() => _phase = _Phase.overview);
+    return true;
   }
 
   @override
   void dispose() {
+    if (widget.back?.handler == _handleBack) widget.back?.handler = null;
     DataService.changes.removeListener(_load);
     _pages.dispose();
     _pulse.dispose();
@@ -109,7 +141,7 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
   void _showError(Object e) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(AuthService.describeError(e, 'Something went wrong')),
+        content: Text(AuthService.describeError(e, context.t('genericError'))),
       ),
     );
   }
@@ -119,7 +151,9 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
     try {
       final earned = await DailyStore.checkIn();
       HapticFeedback.mediumImpact();
-      if (earned) _celebrate(coinsForCheckin, 'Checked in!');
+      if (earned && mounted) {
+        _celebrate(coinsForCheckin, context.t('dl_checkedInCelebrate'));
+      }
     } catch (e) {
       _showError(e);
     } finally {
@@ -127,13 +161,21 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
     }
   }
 
-  void _startLog() {
+  /// Opens the log, optionally at item [page] (tapping an item dot).
+  void _startLog([int page = 0]) {
     setState(() {
       _values = valuesFromLog(_summary?.today?.log);
       _meals = {...?_summary?.today?.log?.meals};
       _phase = _Phase.logging;
-      _page = 0;
+      _page = page;
     });
+    if (page > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Only when the new PageView is the sole one attached (an old one
+        // may still be fading out).
+        if (mounted && _pages.positions.length == 1) _pages.jumpToPage(page);
+      });
+    }
   }
 
   void _goTo(int page) {
@@ -178,9 +220,10 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
       setState(() => _phase = _Phase.overview);
       _celebrate(
         outcome.coinsEarned,
-        outcome.score >= bonusScore
-            ? 'Score ${outcome.score} · bonus!'
-            : 'Score ${outcome.score}/100',
+        context.tf(
+          outcome.score >= bonusScore ? 'dl_scoreBonus' : 'dl_scoreOutOf100',
+          {'score': outcome.score},
+        ),
       );
     } catch (e) {
       _showError(e);
@@ -191,6 +234,15 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
 
   @override
   Widget build(BuildContext context) {
+    // While logging, Android back is held here; MainShell then calls
+    // [_handleBack] through [TabBack] to close the log.
+    return PopScope(
+      canPop: !(widget.isActive && _phase == _Phase.logging),
+      child: _card(context),
+    );
+  }
+
+  Widget _card(BuildContext context) {
     return SizedBox(
       height: dailyCardHeight(context),
       child: SurfaceCard(
@@ -251,10 +303,13 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
       children: [
         Row(
           children: [
-            const Expanded(
+            Expanded(
               child: Text(
-                'Daily check-in',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
+                context.t('dl_dailyCheckin'),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             _Pill(emoji: '🔥', value: streak, color: Colors.deepOrange),
@@ -312,14 +367,14 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
             child: logged
                 ? _AnimatedScoreRing(score: score)
                 : checkedIn
-                ? const Column(
+                ? Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('✅', style: TextStyle(fontSize: 48)),
-                      SizedBox(height: 6),
+                      const Text('✅', style: TextStyle(fontSize: 48)),
+                      const SizedBox(height: 6),
                       Text(
-                        'Checked in',
-                        style: TextStyle(fontWeight: FontWeight.w700),
+                        context.t('dl_checkedIn'),
+                        style: const TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ],
                   )
@@ -334,19 +389,19 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
                         padding: const EdgeInsets.all(34),
                         backgroundColor: tealDark,
                       ),
-                      child: const Column(
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('👋', style: TextStyle(fontSize: 30)),
-                          SizedBox(height: 4),
+                          const Text('👋', style: TextStyle(fontSize: 30)),
+                          const SizedBox(height: 4),
                           Text(
-                            'Check in',
-                            style: TextStyle(
+                            context.t('dl_checkIn'),
+                            style: const TextStyle(
                               fontWeight: FontWeight.w800,
                               fontSize: 15,
                             ),
                           ),
-                          Text(
+                          const Text(
                             '+$coinsForCheckin 🪙',
                             style: TextStyle(fontSize: 12),
                           ),
@@ -357,18 +412,25 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
           ),
         ),
         if (logged) ...[
-          _ItemDots(values: valuesFromLog(today!.log), targets: _targets),
+          _ItemDots(
+            values: valuesFromLog(today!.log),
+            targets: _targets,
+            onTap: _busy ? null : _startLog,
+          ),
           const SizedBox(height: 8),
           Text(
             score >= bonusScore
-                ? 'Great day! Bonus earned 🎉'
-                : 'Reach $bonusScore for +$coinsForBonus bonus coins',
+                ? context.t('dl_bonusEarned')
+                : context.tf('dl_reachForBonus', {
+                    'score': bonusScore,
+                    'coins': coinsForBonus,
+                  }),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
         ] else
           Text(
-            '${dailyItems.length} quick questions · about 1 minute',
+            context.tf('dl_quickQuestions', {'n': dailyItems.length}),
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
           ),
@@ -377,12 +439,12 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
           onPressed: _busy ? null : _startLog,
           icon: Icon(logged ? Icons.edit : Icons.play_arrow),
           label: Text(
-            logged ? "Edit today's log" : "Log today  ·  +$coinsForLog 🪙",
+            logged
+                ? context.t('dl_editTodaysLog')
+                : context.tf('dl_logToday', {'coins': coinsForLog}),
           ),
           style: FilledButton.styleFrom(
-            backgroundColor: logged
-                ? cs.secondaryContainer
-                : Colors.amber.shade700,
+            backgroundColor: logged ? cs.secondaryContainer : kModDark,
             foregroundColor: logged ? cs.onSecondaryContainer : Colors.white,
             padding: const EdgeInsets.symmetric(vertical: 14),
           ),
@@ -404,7 +466,7 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
         Row(
           children: [
             IconButton(
-              tooltip: 'Close',
+              tooltip: context.t('close'),
               visualDensity: VisualDensity.compact,
               onPressed: () => setState(() => _phase = _Phase.overview),
               icon: const Icon(Icons.close),
@@ -464,7 +526,7 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
           children: [
             if (_page > 0)
               IconButton.outlined(
-                tooltip: 'Back',
+                tooltip: context.t('dl_back'),
                 onPressed: () => _goTo(_page - 1),
                 icon: const Icon(Icons.chevron_left),
               ),
@@ -477,15 +539,15 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
                     ? (result.items.isEmpty ? null : _save)
                     : () => _goTo(_page + 1),
                 style: FilledButton.styleFrom(
-                  backgroundColor: last ? Colors.amber.shade700 : tealDark,
+                  backgroundColor: last ? kModDark : tealDark,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
                 child: Text(
                   _busy
-                      ? 'Saving…'
+                      ? context.t('dl_saving')
                       : last
-                      ? 'Save  ·  +$coinsForLog 🪙'
-                      : 'Next',
+                      ? context.tf('dl_saveCoins', {'coins': coinsForLog})
+                      : context.t('dl_next'),
                 ),
               ),
             ),
@@ -520,6 +582,8 @@ class _ItemPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final lang = context.lang;
+    final hint = item.hint(lang);
     final skipped = value == null;
     final v = value ?? item.startValue(targets);
     final goal = item.goal(targets);
@@ -534,142 +598,162 @@ class _ItemPage extends StatelessWidget {
           .toDouble(),
     );
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TweenAnimationBuilder<double>(
-            key: ValueKey(item.key),
-            tween: Tween(begin: 0.6, end: 1),
-            duration: const Duration(milliseconds: 450),
-            curve: Curves.elasticOut,
-            builder: (_, s, child) => Transform.scale(scale: s, child: child),
-            child: Text(item.emoji, style: const TextStyle(fontSize: 40)),
-          ),
-          Text(
-            item.title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          Text(
-            item.goalText(targets),
-            style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-          ),
-          const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton.filledTonal(
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  set(v - item.tapStep);
-                },
-                icon: const Icon(Icons.remove),
-              ),
-              Expanded(
-                child: AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 150),
-                  child: Text.rich(
-                    key: ValueKey('${item.key}$value'),
-                    textAlign: TextAlign.center,
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: skipped ? '—' : item.format(v),
-                          style: TextStyle(
-                            fontSize: 30,
-                            fontWeight: FontWeight.w800,
-                            color: skipped ? cs.outline : null,
-                          ),
+    // Scrolls when a two-line title or large text doesn't fit the card's
+    // height; otherwise stays centred as before.
+    return LayoutBuilder(
+      builder: (context, constraints) => SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 4),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: constraints.maxHeight),
+          child: _body(context, cs, lang, hint, skipped, v, progress, set),
+        ),
+      ),
+    );
+  }
+
+  Widget _body(
+    BuildContext context,
+    ColorScheme cs,
+    AppLanguage lang,
+    String? hint,
+    bool skipped,
+    double v,
+    double progress,
+    void Function(double) set,
+  ) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        TweenAnimationBuilder<double>(
+          key: ValueKey(item.key),
+          tween: Tween(begin: 0.6, end: 1),
+          duration: const Duration(milliseconds: 450),
+          curve: Curves.elasticOut,
+          builder: (_, s, child) => Transform.scale(scale: s, child: child),
+          child: Text(item.emoji, style: const TextStyle(fontSize: 40)),
+        ),
+        Text(
+          item.title(lang),
+          textAlign: TextAlign.center,
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+        ),
+        Text(
+          item.goalText(lang, targets),
+          style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            IconButton.filledTonal(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                set(v - item.tapStep);
+              },
+              icon: const Icon(Icons.remove),
+            ),
+            Expanded(
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 150),
+                child: Text.rich(
+                  key: ValueKey('${item.key}$value'),
+                  textAlign: TextAlign.center,
+                  TextSpan(
+                    children: [
+                      TextSpan(
+                        text: skipped ? '—' : item.format(v),
+                        style: TextStyle(
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                          color: skipped ? cs.outline : null,
                         ),
-                        TextSpan(
-                          text: ' ${item.unit}',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: cs.onSurfaceVariant,
-                          ),
+                      ),
+                      TextSpan(
+                        text: ' ${item.unit(lang)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              IconButton.filledTonal(
-                onPressed: () {
-                  HapticFeedback.selectionClick();
-                  set(v + item.tapStep);
-                },
-                icon: const Icon(Icons.add),
-              ),
-            ],
+            ),
+            IconButton.filledTonal(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                set(v + item.tapStep);
+              },
+              icon: const Icon(Icons.add),
+            ),
+          ],
+        ),
+        SliderTheme(
+          data: SliderTheme.of(context).copyWith(trackHeight: 3),
+          child: Slider(
+            value: v.clamp(item.min, item.max),
+            min: item.min,
+            max: item.max,
+            divisions: ((item.max - item.min) / item.step).round(),
+            onChanged: set,
           ),
-          SliderTheme(
-            data: SliderTheme.of(context).copyWith(trackHeight: 3),
-            child: Slider(
-              value: v.clamp(item.min, item.max),
-              min: item.min,
-              max: item.max,
-              divisions: ((item.max - item.min) / item.step).round(),
-              onChanged: set,
+        ),
+        TweenAnimationBuilder<double>(
+          tween: Tween(end: progress),
+          duration: const Duration(milliseconds: 400),
+          curve: Curves.easeOut,
+          builder: (_, p, _) => ClipRRect(
+            borderRadius: BorderRadius.circular(99),
+            child: LinearProgressIndicator(
+              value: p,
+              minHeight: 6,
+              color: p >= 0.99
+                  ? kLow
+                  : p >= 0.5
+                  ? kMod
+                  : kHigh,
+              backgroundColor: cs.outlineVariant.withValues(alpha: 0.5),
             ),
           ),
-          TweenAnimationBuilder<double>(
-            tween: Tween(end: progress),
-            duration: const Duration(milliseconds: 400),
-            curve: Curves.easeOut,
-            builder: (_, p, _) => ClipRRect(
-              borderRadius: BorderRadius.circular(99),
-              child: LinearProgressIndicator(
-                value: p,
-                minHeight: 6,
-                color: p >= 0.99
-                    ? kLow
-                    : p >= 0.5
-                    ? kMod
-                    : kHigh,
-                backgroundColor: cs.outlineVariant.withValues(alpha: 0.5),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Row(
-            children: [
-              if (onPickMeals != null)
-                Expanded(
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: FilledButton.tonalIcon(
-                      onPressed: onPickMeals,
-                      icon: const Text('🍽️'),
-                      label: Text(
-                        mealCount == 0
-                            ? 'Pick what you ate'
-                            : '$mealCount foods picked',
-                      ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            if (onPickMeals != null)
+              Expanded(
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FilledButton.tonalIcon(
+                    onPressed: onPickMeals,
+                    icon: const Text('🍽️'),
+                    label: Text(
+                      mealCount == 0
+                          ? context.t('dl_pickWhatYouAte')
+                          : context.tf('dl_foodsPicked', {'n': mealCount}),
                     ),
                   ),
-                )
-              else if (item.hint != null)
-                Expanded(
-                  child: Text(
-                    item.hint!,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                  ),
-                )
-              else
-                const Spacer(),
-              TextButton(
-                onPressed: () =>
-                    onChanged(skipped ? item.startValue(targets) : null),
-                child: Text(skipped ? 'Add' : 'Skip'),
-              ),
-            ],
-          ),
-        ],
-      ),
+                ),
+              )
+            else if (hint != null)
+              Expanded(
+                child: Text(
+                  hint,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
+                ),
+              )
+            else
+              const Spacer(),
+            TextButton(
+              onPressed: () =>
+                  onChanged(skipped ? item.startValue(targets) : null),
+              child: Text(context.t(skipped ? 'dl_add' : 'dl_skip')),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }
@@ -679,7 +763,10 @@ class _ItemDots extends StatelessWidget {
   final Map<String, double?> values;
   final DailyTargets targets;
 
-  const _ItemDots({required this.values, required this.targets});
+  /// Opens the log at the tapped item.
+  final ValueChanged<int>? onTap;
+
+  const _ItemDots({required this.values, required this.targets, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -692,7 +779,7 @@ class _ItemDots extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: [
-        for (final item in dailyItems)
+        for (final (i, item) in dailyItems.indexed)
           Builder(
             builder: (context) {
               final s = scores[item.key];
@@ -703,19 +790,32 @@ class _ItemDots extends StatelessWidget {
                   : s >= 0.5
                   ? kMod
                   : kHigh;
+              final title = item.title(context.lang);
               return Tooltip(
-                message: item.title,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.14),
+                message: title,
+                child: Semantics(
+                  button: onTap != null,
+                  label: title,
+                  excludeSemantics: true,
+                  child: InkWell(
+                    onTap: onTap == null ? null : () => onTap!(i),
                     borderRadius: BorderRadius.circular(99),
-                    border: Border.all(color: color.withValues(alpha: 0.5)),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: color.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(99),
+                        border: Border.all(color: color.withValues(alpha: 0.5)),
+                      ),
+                      child: Text(
+                        item.emoji,
+                        style: const TextStyle(fontSize: 14),
+                      ),
+                    ),
                   ),
-                  child: Text(item.emoji, style: const TextStyle(fontSize: 14)),
                 ),
               );
             },
@@ -772,7 +872,7 @@ class _AnimatedScoreRing extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      "today's score",
+                      context.t('dl_todaysScore'),
                       style: TextStyle(
                         fontSize: 11,
                         color: cs.onSurfaceVariant,
@@ -855,8 +955,10 @@ class _CelebrationOverlay extends StatelessWidget {
                         const Text('🪙', style: TextStyle(fontSize: 64)),
                         Text(
                           celebration.coins > 0
-                              ? '+${celebration.coins} coins'
-                              : 'Saved',
+                              ? context.tf('dl_plusCoins', {
+                                  'n': celebration.coins,
+                                })
+                              : context.t('dl_saved'),
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.w900,

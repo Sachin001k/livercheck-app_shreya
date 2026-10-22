@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../app_language.dart';
 import '../survey/health_ui.dart';
 import '../theme.dart';
 import 'meal_catalog.dart';
@@ -65,173 +66,190 @@ class _MealPickerState extends State<_MealPicker> {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final totals = mealTotals(_picked);
+    final lang = context.lang;
     final q = _query.trim().toLowerCase();
-    final shown = mealFoods
-        .where((f) => q.isEmpty || f.name.toLowerCase().contains(q))
-        .toList();
+    final shown = mealFoods.where((f) => f.matches(q, lang)).toList();
     final ratio = totals.kcal / widget.targetKcal;
 
-    return Column(
-      children: [
-        // Running total.
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-          child: Row(
-            children: [
-              const Expanded(
-                child: Text(
-                  'What did you eat today?',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                ),
-              ),
-              TweenAnimationBuilder<double>(
-                tween: Tween(end: totals.kcal.toDouble()),
-                duration: const Duration(milliseconds: 400),
-                builder: (_, v, _) => Text(
-                  '${v.round()} kcal',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: ratio > 1.1 ? kHigh : tealDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: [
-              TweenAnimationBuilder<double>(
-                tween: Tween(end: ratio.clamp(0, 1).toDouble()),
-                duration: const Duration(milliseconds: 400),
-                builder: (_, v, _) => ClipRRect(
-                  borderRadius: BorderRadius.circular(99),
-                  child: LinearProgressIndicator(
-                    value: v,
-                    minHeight: 8,
-                    color: ratio > 1.1
-                        ? kHigh
-                        : ratio >= 0.9
-                        ? kLow
-                        : tealLight,
-                    backgroundColor: cs.outlineVariant.withValues(alpha: 0.5),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Text(
-                    'Goal about ${widget.targetKcal} kcal',
-                    style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                  ),
-                  const Spacer(),
-                  if (totals.items > 0)
-                    Text(
-                      '${totals.items} item${totals.items == 1 ? '' : 's'}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: cs.onSurfaceVariant,
-                      ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              TextField(
-                onChanged: (v) => setState(() => _query = v),
-                decoration: InputDecoration(
-                  hintText: 'Search foods',
-                  prefixIcon: const Icon(Icons.search),
-                  isDense: true,
-                  filled: true,
-                  fillColor: cs.surfaceContainerLowest,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: cs.outlineVariant),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: cs.outlineVariant),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 8),
-        Expanded(
-          child: ListView(
-            controller: widget.scrollController,
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
-            children: [
-              for (final category in MealCategory.values)
-                if (shown.any((f) => f.category == category)) ...[
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
-                    child: Text(
-                      mealCategoryLabels[category]!,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w700,
-                        fontSize: 15,
-                      ),
-                    ),
-                  ),
-                  SurfaceCard(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Column(
-                      children: [
-                        for (final food in shown.where(
-                          (f) => f.category == category,
-                        ))
-                          _FoodRow(
-                            food: food,
-                            count: _picked[food.id] ?? 0,
-                            onChange: (d) => _change(food, d),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
-              if (shown.isEmpty)
-                Padding(
-                  padding: const EdgeInsets.all(32),
-                  child: Text(
-                    'No food called "$_query" yet. Pick the closest one.',
-                    textAlign: TextAlign.center,
-                  ),
-                ),
-            ],
-          ),
-        ),
-        SafeArea(
-          top: false,
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+    // Lift everything above the keyboard while searching, so the list and
+    // the "Use N kcal" button stay visible.
+    return Padding(
+      padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
+      child: Column(
+        children: [
+          // Running total.
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
             child: Row(
               children: [
-                if (_picked.isNotEmpty)
-                  TextButton(
-                    onPressed: () => setState(_picked.clear),
-                    child: const Text('Clear'),
-                  ),
-                const SizedBox(width: 8),
                 Expanded(
-                  child: BigButton(
-                    label: _picked.isEmpty
-                        ? 'Pick at least one food'
-                        : 'Use ${totals.kcal} kcal',
-                    onPressed: _picked.isEmpty
-                        ? null
-                        : () => Navigator.of(context).pop(_picked),
+                  child: Text(
+                    context.t('ml_whatDidYouEat'),
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                TweenAnimationBuilder<double>(
+                  tween: Tween(end: totals.kcal.toDouble()),
+                  duration: const Duration(milliseconds: 400),
+                  builder: (_, v, _) => Text(
+                    '${v.round()} kcal',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: ratio > 1.1 ? kHigh : tealDark,
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ),
-      ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Column(
+              children: [
+                TweenAnimationBuilder<double>(
+                  tween: Tween(end: ratio.clamp(0, 1).toDouble()),
+                  duration: const Duration(milliseconds: 400),
+                  builder: (_, v, _) => ClipRRect(
+                    borderRadius: BorderRadius.circular(99),
+                    child: LinearProgressIndicator(
+                      value: v,
+                      minHeight: 8,
+                      color: ratio > 1.1
+                          ? kHigh
+                          : ratio >= 0.9
+                          ? kLow
+                          : tealLight,
+                      backgroundColor: cs.outlineVariant.withValues(alpha: 0.5),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        context.tf('dl_goalCalories', {'n': widget.targetKcal}),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    if (totals.items > 0)
+                      Text(
+                        context.tf(
+                          totals.items == 1 ? 'ml_oneItem' : 'ml_itemsCount',
+                          {'n': totals.items},
+                        ),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  onChanged: (v) => setState(() => _query = v),
+                  decoration: InputDecoration(
+                    hintText: context.t('ml_searchFoods'),
+                    prefixIcon: const Icon(Icons.search),
+                    isDense: true,
+                    filled: true,
+                    fillColor: cs.surfaceContainerLowest,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: cs.outlineVariant),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: BorderSide(color: cs.outlineVariant),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          Expanded(
+            child: ListView(
+              controller: widget.scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+              children: [
+                for (final category in MealCategory.values)
+                  if (shown.any((f) => f.category == category)) ...[
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(4, 12, 4, 8),
+                      child: Text(
+                        mealCategoryLabel(category, lang),
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    SurfaceCard(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        children: [
+                          for (final food in shown.where(
+                            (f) => f.category == category,
+                          ))
+                            _FoodRow(
+                              food: food,
+                              count: _picked[food.id] ?? 0,
+                              onChange: (d) => _change(food, d),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                if (shown.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Text(
+                      context.tf('ml_noFoodFound', {'q': _query}),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+              child: Row(
+                children: [
+                  if (_picked.isNotEmpty)
+                    TextButton(
+                      onPressed: () => setState(_picked.clear),
+                      child: Text(context.t('ml_clear')),
+                    ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: BigButton(
+                      label: _picked.isEmpty
+                          ? context.t('ml_pickAtLeastOne')
+                          : context.tf('ml_useKcal', {'n': totals.kcal}),
+                      onPressed: _picked.isEmpty
+                          ? null
+                          : () => Navigator.of(context).pop(_picked),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -251,6 +269,8 @@ class _FoodRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
     final picked = count > 0;
+    final lang = context.lang;
+    final name = food.name(lang);
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       color: picked
@@ -265,12 +285,9 @@ class _FoodRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
                 Text(
-                  food.name,
-                  style: const TextStyle(fontWeight: FontWeight.w600),
-                ),
-                Text(
-                  '${food.portion} · ${food.kcal} kcal',
+                  '${food.portion(lang)} · ${food.kcal} kcal',
                   style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
               ],
@@ -283,7 +300,7 @@ class _FoodRow extends StatelessWidget {
             child: picked
                 ? IconButton(
                     key: const ValueKey('minus'),
-                    tooltip: 'Less ${food.name}',
+                    tooltip: context.tf('ml_less', {'food': name}),
                     onPressed: () => onChange(-1),
                     icon: const Icon(Icons.remove_circle_outline),
                   )
@@ -305,7 +322,7 @@ class _FoodRow extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'More ${food.name}',
+            tooltip: context.tf('ml_more', {'food': name}),
             onPressed: () => onChange(1),
             icon: Icon(Icons.add_circle, color: tealDark),
           ),

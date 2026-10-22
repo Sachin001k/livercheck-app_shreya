@@ -54,7 +54,7 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
       setState(() {
         _deleting = false;
         _error =
-            '${context.t('deleteAccountFailed')} ${AuthService.describeError(e, '')}';
+            '${context.t('deleteAccountFailed')} ${AuthService.describeErrorFor(context, e, '')}';
       });
     }
   }
@@ -62,6 +62,9 @@ class _DeleteAccountDialogState extends State<_DeleteAccountDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
+      // Scrollable so the keyboard (autofocus) never squeezes the content
+      // into an overflow on small phones.
+      scrollable: true,
       icon: const Icon(Icons.warning_amber_rounded, color: kHigh, size: 36),
       title: Text(context.t('deleteAccountTitle')),
       content: Column(

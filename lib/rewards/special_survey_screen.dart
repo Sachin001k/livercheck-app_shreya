@@ -58,7 +58,11 @@ class _SpecialSurveyScreenState extends State<SpecialSurveyScreen> {
       if (!mounted) return;
       setState(() {
         _saving = false;
-        _error = AuthService.describeError(e, context.t('genericError'));
+        _error = AuthService.describeErrorFor(
+          context,
+          e,
+          context.t('genericError'),
+        );
       });
     }
   }
@@ -88,8 +92,10 @@ class _SpecialSurveyScreenState extends State<SpecialSurveyScreen> {
                             if (s.description != null) Text(s.description!),
                             const SizedBox(height: 4),
                             Text(
-                              '${context.t('surveyEarn')} 🪙 ${s.rewardCoins} · '
-                              '${s.questions.length} questions',
+                              context.tf('rw_surveyEarnLine', {
+                                'coins': s.rewardCoins,
+                                'n': s.questions.length,
+                              }),
                               style: TextStyle(
                                 color: Colors.amber.shade800,
                                 fontWeight: FontWeight.w700,
@@ -168,12 +174,17 @@ class _SpecialSurveyScreenState extends State<SpecialSurveyScreen> {
         );
       case 'scale':
         final value = _answers[q.id] as int?;
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Wrap (not Row) so the five chips never overflow on narrow
+        // phones or with large text.
+        return Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             for (var n = 1; n <= 5; n++)
               ChoiceChip(
                 label: Text('$n'),
+                showCheckmark: false,
                 selected: value == n,
                 onSelected: (_) => setState(() => _answers[q.id] = n),
               ),
@@ -310,9 +321,9 @@ class _RewardDialog extends StatelessWidget {
                   backgroundColor: Colors.amber.shade700,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-                child: const Text(
-                  'Collect',
-                  style: TextStyle(fontWeight: FontWeight.w800),
+                child: Text(
+                  context.t('rw_collect'),
+                  style: const TextStyle(fontWeight: FontWeight.w800),
                 ),
               ),
             ),

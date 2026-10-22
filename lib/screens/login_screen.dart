@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../app_language.dart';
 import '../services/auth_service.dart';
@@ -55,18 +56,12 @@ class _LoginScreenState extends State<LoginScreen> {
       await action();
     } catch (e) {
       if (mounted) {
-        final raw = AuthService.describeError(e, context.t('genericError'));
-        // Turn common Supabase auth errors into plain advice.
-        final lower = raw.toLowerCase();
-        final message = lower.contains('rate limit')
-            ? context.t('authRateLimited')
-            : lower.contains('already registered')
-            ? context.t('authAlreadyRegistered')
-            : lower.contains('invalid login credentials')
-            ? context.t('authInvalidLogin')
-            : lower.contains('email not confirmed')
-            ? context.t('authEmailNotConfirmed')
-            : raw;
+        // Common Supabase auth errors become plain, translated advice.
+        final message = AuthService.describeErrorFor(
+          context,
+          e,
+          context.t('genericError'),
+        );
         setState(() => _error = message);
       }
     } finally {
@@ -123,53 +118,72 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(gradient: tealGradient),
-        child: SafeArea(
-          bottom: false,
-          child: Center(
-            // Keeps the layout phone-shaped on wide windows (web/desktop).
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const Align(
-                    alignment: Alignment.centerRight,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: LanguageDropdown(
-                        textColor: Colors.white,
-                        dropdownColor: tealDark,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      // Light status bar icons on the teal background.
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(gradient: tealGradient),
+          child: SafeArea(
+            bottom: false,
+            child: Center(
+              // Keeps the layout phone-shaped on wide windows (web/desktop).
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                // One scroll view for the whole page, so with the keyboard
+                // open on a small phone the header scrolls away instead of
+                // squeezing the form card to nothing. The mint card still
+                // fills the rest of the screen when there is room.
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Align(
+                            alignment: Alignment.centerRight,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 12),
+                              child: LanguageDropdown(
+                                textColor: Colors.white,
+                                dropdownColor: tealDark,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(32, 24, 32, 32),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  context.t(
+                                    _isSignUp
+                                        ? 'createAccountTitle'
+                                        : 'loginTitle',
+                                  ),
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 36,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  context.t('loginSubtitle'),
+                                  style: const TextStyle(color: Colors.white70),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(32, 24, 32, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          context.t(
-                            _isSignUp ? 'createAccountTitle' : 'loginTitle',
-                          ),
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 36,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          context.t('loginSubtitle'),
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                      ],
+                    SliverFillRemaining(
+                      hasScrollBody: false,
+                      child: _buildCard(context),
                     ),
-                  ),
-                  Expanded(child: _buildCard(context)),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -187,8 +201,16 @@ class _LoginScreenState extends State<LoginScreen> {
           topRight: Radius.circular(12),
         ),
       ),
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
+      child: Padding(
+        // Extra bottom padding keeps the last link clear of the Android
+        // navigation bar (the SafeArea above leaves the bottom open so the
+        // mint card reaches the screen edge).
+        padding: EdgeInsets.fromLTRB(
+          32,
+          32,
+          32,
+          32 + MediaQuery.paddingOf(context).bottom,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [..._emailFields(context)],

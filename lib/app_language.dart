@@ -25,6 +25,14 @@ extension TranslateContext on BuildContext {
 
   /// Text for [key] in the current language (falls back to English).
   String t(String key) => tr(LanguageScope.of(this), key);
+
+  /// Like [t], but fills `{name}` placeholders, e.g.
+  /// `context.tf('bmiIs', {'bmi': 27.3})` for `'Your BMI is {bmi}'`.
+  String tf(String key, Map<String, Object?> args) {
+    var text = t(key);
+    args.forEach((name, value) => text = text.replaceAll('{$name}', '$value'));
+    return text;
+  }
 }
 
 /// Language picker used in the login screen and the app bar. Saves the

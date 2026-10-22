@@ -21,7 +21,7 @@ void main() {
         coins: 0, bloodReportAdded: false, specialSurveysDone: 0,
       );
       expect(b.where((x) => x.unlocked), isEmpty);
-      expect(b.every((x) => x.hint.isNotEmpty), isTrue);
+      expect(b.every((x) => x.hintKey.isNotEmpty), isTrue);
     });
 
     test('streak, coin and survey badges unlock at their thresholds', () {
@@ -30,14 +30,14 @@ void main() {
           healthChecks: 1, scoreImproved: true, longestStreak: 7, bestDayScore: 92,
           coins: 120, bloodReportAdded: true, specialSurveysDone: 1,
         ))
-          x.label: x.unlocked,
+          x.id: x.unlocked,
       };
-      expect(b['3-day streak'], isTrue);
-      expect(b['7-day streak'], isTrue);
-      expect(b['30-day streak'], isFalse);
-      expect(b['100 coins'], isTrue);
-      expect(b['500 coins'], isFalse);
-      expect(b['Survey star'], isTrue);
+      expect(b['streak3'], isTrue);
+      expect(b['streak7'], isTrue);
+      expect(b['streak30'], isFalse);
+      expect(b['coins100'], isTrue);
+      expect(b['coins500'], isFalse);
+      expect(b['survey_star'], isTrue);
     });
   });
 

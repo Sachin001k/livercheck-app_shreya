@@ -1,59 +1,27 @@
 import 'package:flutter/material.dart';
 
 import '../app_language.dart';
+import '../config.dart';
 import '../survey/health_ui.dart';
 
 /// DRAFT privacy policy, written to India's Digital Personal Data
 /// Protection (DPDP) Act 2023 principles. Must be reviewed by a lawyer and
 /// the contact details filled in before public release.
-const _contactEmail = 'privacy@livrcheck.example'; // TODO: real address
-const _lastUpdated = '1 October 2026';
+/// Date of the last change to the policy text.
+final _lastUpdated = DateTime(2026, 10, 1);
 
+/// Section title and body translation keys. The text itself lives in
+/// `lib/translations/*.dart` (`pp_…`); the body of "Your rights" has an
+/// `{email}` placeholder.
 const _sections = [
-  (
-    'What we collect',
-    'Account details (email, name). Profile details you enter (age, gender, '
-        'height, weight, language). Your health check answers and results, '
-        'blood test values if you enter them, and your daily logs (water, '
-        'food, exercise, steps, sleep). Coins and streaks you earn.',
-  ),
-  (
-    'Why we use it',
-    'To calculate and show your results, track your progress over time, '
-        'personalise your daily goals and run the coin rewards. We do not use '
-        'it for advertising and we never sell it.',
-  ),
-  (
-    'Where it is stored',
-    'On secure servers run by our database provider (Supabase). Every '
-        'record is protected so that only your account can read it.',
-  ),
-  (
-    'Who can see it',
-    'Only you. Our team does not look at individual records except to fix '
-        'a problem you report, or where the law requires it.',
-  ),
-  (
-    'How long we keep it',
-    'For as long as you have an account. When you delete your account, all '
-        'your data is deleted straight away.',
-  ),
-  (
-    'Your rights',
-    'You can see and edit your profile in the app at any time, and delete '
-        'your account and all your data yourself (Profile → Delete my '
-        'account) — it is erased immediately. For a copy of your data or '
-        'any other request, email $_contactEmail.',
-  ),
-  (
-    'Not medical advice',
-    'LivrCheck is a screening and wellness tool. It does not diagnose any '
-        'condition. Always talk to a doctor about your health.',
-  ),
-  (
-    'Changes',
-    'If this policy changes we will ask you to agree again in the app.',
-  ),
+  ('pp_collectTitle', 'pp_collectBody'),
+  ('pp_whyTitle', 'pp_whyBody'),
+  ('pp_whereTitle', 'pp_whereBody'),
+  ('pp_whoTitle', 'pp_whoBody'),
+  ('pp_keepTitle', 'pp_keepBody'),
+  ('pp_rightsTitle', 'pp_rightsBody'),
+  ('pp_medicalTitle', 'pp_medicalBody'),
+  ('pp_changesTitle', 'pp_changesBody'),
 ];
 
 class PrivacyPolicyScreen extends StatelessWidget {
@@ -72,7 +40,9 @@ class PrivacyPolicyScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
               children: [
                 Text(
-                  'Last updated $_lastUpdated · Draft',
+                  context.tf('pp_lastUpdated', {
+                    'date': shortDate(context, _lastUpdated),
+                  }),
                   style: TextStyle(color: cs.onSurfaceVariant, fontSize: 13),
                 ),
                 const SizedBox(height: 12),
@@ -83,14 +53,17 @@ class PrivacyPolicyScreen extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          title,
+                          context.t(title),
                           style: const TextStyle(
                             fontWeight: FontWeight.w700,
                             fontSize: 16,
                           ),
                         ),
                         const SizedBox(height: 6),
-                        Text(body, style: const TextStyle(height: 1.4)),
+                        Text(
+                          context.tf(body, {'email': supportEmail}),
+                          style: const TextStyle(height: 1.4),
+                        ),
                       ],
                     ),
                   ),

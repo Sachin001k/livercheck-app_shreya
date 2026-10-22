@@ -24,3 +24,17 @@ ThemeData buildAppTheme() {
     ),
   );
 }
+
+/// Turns off Android's "stretch" effect when a list is pulled past its top
+/// or bottom (Android 12+), so cards and text don't stretch. Pull to
+/// refresh still works.
+class AppScrollBehavior extends MaterialScrollBehavior {
+  const AppScrollBehavior();
+
+  @override
+  Widget buildOverscrollIndicator(
+    BuildContext context,
+    Widget child,
+    ScrollableDetails details,
+  ) => child;
+}

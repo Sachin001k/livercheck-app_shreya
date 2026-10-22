@@ -4,12 +4,21 @@
 /// reviewed by a doctor or dietitian before release. Later this can move
 /// into a Supabase table so it can be updated without a new app release
 /// (see README → Roadmap).
+///
+/// Every text field holds a TRANSLATION KEY (prefix `hm_`), not the text
+/// itself. Show it with `context.t(key)`; the English text lives in
+/// `lib/translations/en.dart`. Numbers with units (e.g. '3 g') are plain
+/// data and shown as they are.
 library;
 
 class FoodTip {
   final String emoji;
-  final String name;
-  final String why;
+
+  /// Translation key of the food's name.
+  final String nameKey;
+
+  /// Translation key of the one-line reason.
+  final String whyKey;
 
   /// True for "eat more", false for "limit".
   final bool recommended;
@@ -19,17 +28,19 @@ class FoodTip {
 
   const FoodTip({
     required this.emoji,
-    required this.name,
-    required this.why,
+    required this.nameKey,
+    required this.whyKey,
     required this.recommended,
     this.detail,
   });
 }
 
-/// Everything shown in a food's pop-up.
+/// Everything shown in a food's pop-up. All `...Key` fields are
+/// translation keys.
 class FoodDetail {
-  /// The portion the calories and nutrients refer to, e.g. "1 katori (100 g)".
-  final String serving;
+  /// Key of the portion the calories and nutrients refer to,
+  /// e.g. "1 katori (100 g)".
+  final String servingKey;
   final int kcal;
   final List<Nutrient> nutrients;
 
@@ -45,25 +56,35 @@ class FoodDetail {
   /// Healthier alternatives, mainly for "limit" foods. Hidden when empty.
   final List<HealthPoint> swaps;
 
-  final List<String> precautions;
+  /// Keys of the precautions.
+  final List<String> precautionKeys;
 
   const FoodDetail({
-    required this.serving,
+    required this.servingKey,
     required this.kcal,
     required this.nutrients,
     required this.intake,
     this.benefits = const [],
     required this.overconsumption,
     this.swaps = const [],
-    required this.precautions,
+    required this.precautionKeys,
   });
 }
 
 class Nutrient {
-  final String name;
-  final String amount;
+  /// Translation key of the nutrient's name.
+  final String nameKey;
 
-  const Nutrient(this.name, this.amount);
+  /// Amount shown as-is (numbers and units, e.g. '3 g'). Null when the
+  /// amount is words, see [amountKey].
+  final String? amount;
+
+  /// Translation key for an amount in words (e.g. "High").
+  final String? amountKey;
+
+  const Nutrient(this.nameKey, String this.amount) : amountKey = null;
+
+  const Nutrient.words(this.nameKey, String this.amountKey) : amount = null;
 }
 
 enum AgeGroup { children, adults, elders }
@@ -71,879 +92,542 @@ enum AgeGroup { children, adults, elders }
 class IntakeGuide {
   final AgeGroup group;
 
-  /// Who this row covers, e.g. "1–9 years".
-  final String ages;
-  final String amount;
-  final String? note;
+  /// Keys: who this row covers (e.g. "1–9 years"), the amount, and an
+  /// optional note.
+  final String agesKey;
+  final String amountKey;
+  final String? noteKey;
 
   const IntakeGuide({
     required this.group,
-    required this.ages,
-    required this.amount,
-    this.note,
+    required this.agesKey,
+    required this.amountKey,
+    this.noteKey,
   });
 }
 
-/// One benefit or risk: an emoji, what it affects, and why.
+/// One benefit or risk: an emoji, what it affects, and why (both keys).
 class HealthPoint {
   final String emoji;
-  final String title;
-  final String body;
+  final String titleKey;
+  final String bodyKey;
 
-  const HealthPoint(this.emoji, this.title, this.body);
+  const HealthPoint(this.emoji, this.titleKey, this.bodyKey);
 }
 
 class HealthTip {
   final String emoji;
-  final String title;
-  final String body;
+  final String titleKey;
+  final String bodyKey;
 
   const HealthTip({
     required this.emoji,
-    required this.title,
-    required this.body,
+    required this.titleKey,
+    required this.bodyKey,
   });
 }
 
 class Faq {
-  final String question;
-  final String answer;
+  final String questionKey;
+  final String answerKey;
 
-  const Faq({required this.question, required this.answer});
+  const Faq({required this.questionKey, required this.answerKey});
 }
 
 const List<FoodTip> foodTips = [
   FoodTip(
     emoji: '🥬',
-    name: 'Leafy greens',
-    why: 'Palak, methi and other greens are rich in fibre and antioxidants.',
+    nameKey: 'hm_greensName',
+    whyKey: 'hm_greensWhy',
     recommended: true,
     detail: FoodDetail(
-      serving: '1 katori cooked palak (≈100 g)',
+      servingKey: 'hm_greensServing',
       kcal: 23,
       nutrients: [
         // Boiled spinach, per 100 g (USDA FoodData Central).
-        Nutrient('Protein', '3 g'),
-        Nutrient('Fibre', '2.4 g'),
-        Nutrient('Iron', '3.6 mg'),
-        Nutrient('Folate', '146 µg'),
-        Nutrient('Vitamin K', '494 µg'),
-        Nutrient('Vitamin C', '10 mg'),
+        Nutrient('hm_nutProtein', '3 g'),
+        Nutrient('hm_nutFibre', '2.4 g'),
+        Nutrient('hm_nutIron', '3.6 mg'),
+        Nutrient('hm_nutFolate', '146 µg'),
+        Nutrient('hm_nutVitaminK', '494 µg'),
+        Nutrient('hm_nutVitaminC', '10 mg'),
       ],
       intake: [
         IntakeGuide(
           group: AgeGroup.children,
-          ages: '1–9 years',
-          amount: '½–1 katori (50–75 g) a day',
-          note: 'Serve well cooked and mashed. Not for babies under 6 months.',
+          agesKey: 'hm_ages1to9',
+          amountKey: 'hm_greensKidsAmt',
+          noteKey: 'hm_greensKidsNote',
         ),
         IntakeGuide(
           group: AgeGroup.adults,
-          ages: '18–59 years',
-          amount: '1 katori (≈100 g) a day',
-          note: 'Part of the 300–400 g of vegetables advised daily.',
+          agesKey: 'hm_ages18to59',
+          amountKey: 'hm_greensAdultAmt',
+          noteKey: 'hm_greensAdultNote',
         ),
         IntakeGuide(
           group: AgeGroup.elders,
-          ages: '60+ years',
-          amount: '1 katori (≈100 g) a day',
-          note: 'Cook soft for easier chewing and digestion.',
+          agesKey: 'hm_ages60plus',
+          amountKey: 'hm_greensAdultAmt',
+          noteKey: 'hm_greensElderNote',
         ),
       ],
       benefits: [
-        HealthPoint(
-          '🍃',
-          'Liver',
-          'Fibre and antioxidants help reduce fat build-up in the liver.',
-        ),
-        HealthPoint(
-          '❤️',
-          'Heart disease',
-          'Natural nitrates and folate help keep blood pressure in check.',
-        ),
-        HealthPoint(
-          '🩸',
-          'Anaemia',
-          'Iron and folate support healthy red blood cells.',
-        ),
-        HealthPoint(
-          '🦴',
-          'Weak bones',
-          'Vitamin K helps the body use calcium to keep bones strong.',
-        ),
-        HealthPoint(
-          '👁️',
-          'Eye problems',
-          'Lutein and zeaxanthin protect against cataract and age-related vision loss.',
-        ),
-        HealthPoint(
-          '🍬',
-          'Type 2 diabetes',
-          'Very low in calories and slow to digest, so blood sugar stays steady.',
-        ),
+        HealthPoint('🍃', 'hm_ptLiver', 'hm_greensBen1'),
+        HealthPoint('❤️', 'hm_ptHeartDisease', 'hm_greensBen2'),
+        HealthPoint('🩸', 'hm_ptAnaemia', 'hm_greensBen3'),
+        HealthPoint('🦴', 'hm_ptWeakBones', 'hm_greensBen4'),
+        HealthPoint('👁️', 'hm_ptEyeProblems', 'hm_greensBen5'),
+        HealthPoint('🍬', 'hm_ptDiabetes2', 'hm_greensBen6'),
       ],
       overconsumption: [
-        HealthPoint(
-          '🫘',
-          'Kidneys',
-          'Palak is high in oxalate, which can form kidney stones in people prone to them.',
-        ),
-        HealthPoint(
-          '🩸',
-          'Blood clotting',
-          'Large, changing amounts of vitamin K can interfere with blood thinners such as warfarin.',
-        ),
-        HealthPoint(
-          '🤢',
-          'Digestion',
-          'Too much fibre at once can cause gas, bloating or loose motions.',
-        ),
+        HealthPoint('🫘', 'hm_ptKidneys', 'hm_greensRisk1'),
+        HealthPoint('🩸', 'hm_ptBloodClotting', 'hm_greensRisk2'),
+        HealthPoint('🤢', 'hm_ptDigestion', 'hm_greensRisk3'),
       ],
-      precautions: [
-        'Wash leaves thoroughly under running water to remove soil and pesticides.',
-        'Boil or blanch palak and throw away the water to cut oxalate.',
-        'Add lemon or amla to help the body absorb the iron.',
-        'Had kidney stones? Prefer methi or other greens, and ask your doctor.',
-        'On blood thinners? Keep the amount steady each day rather than stopping.',
-        'Do not reheat cooked greens many times, especially for small children.',
+      precautionKeys: [
+        'hm_greensPrec1',
+        'hm_greensPrec2',
+        'hm_greensPrec3',
+        'hm_greensPrec4',
+        'hm_greensPrec5',
+        'hm_greensPrec6',
       ],
     ),
   ),
   FoodTip(
     emoji: '🌾',
-    name: 'Millets & whole grains',
-    why: 'Ragi, jowar and bajra release energy slowly and help control sugar.',
+    nameKey: 'hm_milletName',
+    whyKey: 'hm_milletWhy',
     recommended: true,
     detail: FoodDetail(
-      serving: '1 ragi roti (≈30 g flour)',
+      servingKey: 'hm_milletServing',
       kcal: 96,
       nutrients: [
         // Ragi flour, scaled from per-100 g values (IFCT 2017).
-        Nutrient('Carbs', '20 g'),
-        Nutrient('Fibre', '3.4 g'),
-        Nutrient('Protein', '2.2 g'),
-        Nutrient('Calcium', '109 mg'),
-        Nutrient('Iron', '1.4 mg'),
-        Nutrient('Magnesium', '44 mg'),
+        Nutrient('hm_nutCarbs', '20 g'),
+        Nutrient('hm_nutFibre', '3.4 g'),
+        Nutrient('hm_nutProtein', '2.2 g'),
+        Nutrient('hm_nutCalcium', '109 mg'),
+        Nutrient('hm_nutIron', '1.4 mg'),
+        Nutrient('hm_nutMagnesium', '44 mg'),
       ],
       intake: [
         IntakeGuide(
           group: AgeGroup.children,
-          ages: '1–9 years',
-          amount: '1–2 small rotis or 1 katori ragi porridge a day',
-          note:
-              'Ragi porridge (ragi malt) is a traditional first food after 6 months.',
+          agesKey: 'hm_ages1to9',
+          amountKey: 'hm_milletKidsAmt',
+          noteKey: 'hm_milletKidsNote',
         ),
         IntakeGuide(
           group: AgeGroup.adults,
-          ages: '18–59 years',
-          amount: 'Make at least half your daily grains whole grains',
-          note:
-              'For example, swap 2–3 of your usual rotis or rice portions for millets.',
+          agesKey: 'hm_ages18to59',
+          amountKey: 'hm_milletAdultAmt',
+          noteKey: 'hm_milletAdultNote',
         ),
         IntakeGuide(
           group: AgeGroup.elders,
-          ages: '60+ years',
-          amount: '2–3 portions a day',
-          note: 'Soft porridge or upma is easier to chew and digest.',
+          agesKey: 'hm_ages60plus',
+          amountKey: 'hm_milletElderAmt',
+          noteKey: 'hm_milletElderNote',
         ),
       ],
       benefits: [
-        HealthPoint(
-          '🍃',
-          'Liver',
-          'Swapping refined grains for whole grains helps lower liver fat.',
-        ),
-        HealthPoint(
-          '🍬',
-          'Type 2 diabetes',
-          'Fibre slows digestion, so blood sugar rises gently after meals.',
-        ),
-        HealthPoint(
-          '❤️',
-          'Heart disease',
-          'Soluble fibre helps lower LDL ("bad") cholesterol.',
-        ),
-        HealthPoint(
-          '🦴',
-          'Weak bones',
-          'Ragi has about 3 times more calcium than milk, weight for weight.',
-        ),
-        HealthPoint(
-          '🩸',
-          'Anaemia',
-          'Bajra and ragi add iron to vegetarian diets.',
-        ),
-        HealthPoint(
-          '🚽',
-          'Constipation',
-          'Fibre keeps digestion regular and feeds healthy gut bacteria.',
-        ),
+        HealthPoint('🍃', 'hm_ptLiver', 'hm_milletBen1'),
+        HealthPoint('🍬', 'hm_ptDiabetes2', 'hm_milletBen2'),
+        HealthPoint('❤️', 'hm_ptHeartDisease', 'hm_milletBen3'),
+        HealthPoint('🦴', 'hm_ptWeakBones', 'hm_milletBen4'),
+        HealthPoint('🩸', 'hm_ptAnaemia', 'hm_milletBen5'),
+        HealthPoint('🚽', 'hm_ptConstipation', 'hm_milletBen6'),
       ],
       overconsumption: [
-        HealthPoint(
-          '🍬',
-          'Blood sugar',
-          'Millets are still carbohydrates. Large portions can still raise blood sugar.',
-        ),
-        HealthPoint(
-          '🤢',
-          'Digestion',
-          'A sudden jump in fibre can cause gas and bloating.',
-        ),
-        HealthPoint(
-          '🦋',
-          'Thyroid',
-          'Very large daily amounts of bajra may affect the thyroid when iodine intake is low.',
-        ),
-        HealthPoint(
-          '🫘',
-          'Kidneys',
-          'Rich in potassium and phosphorus. People with kidney disease may need to limit them.',
-        ),
+        HealthPoint('🍬', 'hm_ptBloodSugar', 'hm_milletRisk1'),
+        HealthPoint('🤢', 'hm_ptDigestion', 'hm_milletRisk2'),
+        HealthPoint('🦋', 'hm_ptThyroid', 'hm_milletRisk3'),
+        HealthPoint('🫘', 'hm_ptKidneys', 'hm_milletRisk4'),
       ],
-      precautions: [
-        'Switch gradually over 2–3 weeks and drink plenty of water.',
-        'Soak, sprout or ferment millets to help the body absorb iron and zinc.',
-        'Keep portions sensible: a millet roti still counts as a roti.',
-        'Use iodised salt if you eat bajra every day.',
-        'Packaged "multigrain" biscuits and snacks are often mostly maida. Read the label.',
-        'Have kidney disease? Ask your doctor how much is right for you.',
+      precautionKeys: [
+        'hm_milletPrec1',
+        'hm_milletPrec2',
+        'hm_milletPrec3',
+        'hm_milletPrec4',
+        'hm_milletPrec5',
+        'hm_milletPrec6',
       ],
     ),
   ),
   FoodTip(
     emoji: '🫘',
-    name: 'Dal & legumes',
-    why: 'Good plant protein that keeps you full for longer.',
+    nameKey: 'hm_dalName',
+    whyKey: 'hm_dalWhy',
     recommended: true,
     detail: FoodDetail(
-      serving: '1 katori cooked dal (≈30 g raw masoor)',
+      servingKey: 'hm_dalServing',
       kcal: 106,
       nutrients: [
         // Masoor dal, scaled from per-100 g raw values (IFCT 2017).
-        Nutrient('Protein', '7 g'),
-        Nutrient('Fibre', '3.2 g'),
-        Nutrient('Iron', '2 mg'),
-        Nutrient('Folate', '144 µg'),
-        Nutrient('Potassium', '203 mg'),
-        Nutrient('Zinc', '1.4 mg'),
+        Nutrient('hm_nutProtein', '7 g'),
+        Nutrient('hm_nutFibre', '3.2 g'),
+        Nutrient('hm_nutIron', '2 mg'),
+        Nutrient('hm_nutFolate', '144 µg'),
+        Nutrient('hm_nutPotassium', '203 mg'),
+        Nutrient('hm_nutZinc', '1.4 mg'),
       ],
       intake: [
         IntakeGuide(
           group: AgeGroup.children,
-          ages: '1–9 years',
-          amount: '½–1 katori, twice a day',
-          note: 'Moong dal khichdi is gentle and easy to digest.',
+          agesKey: 'hm_ages1to9',
+          amountKey: 'hm_dalKidsAmt',
+          noteKey: 'hm_dalKidsNote',
         ),
         IntakeGuide(
           group: AgeGroup.adults,
-          ages: '18–59 years',
-          amount: '2–3 katoris a day',
-          note:
-              'Mix it up: dal, chana, rajma, sprouts. About 85 g raw pulses daily.',
+          agesKey: 'hm_ages18to59',
+          amountKey: 'hm_dalAdultAmt',
+          noteKey: 'hm_dalAdultNote',
         ),
         IntakeGuide(
           group: AgeGroup.elders,
-          ages: '60+ years',
-          amount: '2 katoris a day',
-          note: 'Well-cooked moong or masoor is easiest on the stomach.',
+          agesKey: 'hm_ages60plus',
+          amountKey: 'hm_dalElderAmt',
+          noteKey: 'hm_dalElderNote',
         ),
       ],
       benefits: [
-        HealthPoint(
-          '🍃',
-          'Liver',
-          'Plant protein instead of red and processed meat helps reduce liver fat.',
-        ),
-        HealthPoint(
-          '❤️',
-          'Heart disease',
-          'Fibre and potassium help lower cholesterol and blood pressure.',
-        ),
-        HealthPoint(
-          '🍬',
-          'Type 2 diabetes',
-          'Low glycaemic index, so blood sugar rises slowly.',
-        ),
-        HealthPoint(
-          '💪',
-          'Muscle loss',
-          'Protein helps keep muscles strong, especially after 60.',
-        ),
-        HealthPoint('🩸', 'Anaemia', 'A good source of iron and folate.'),
+        HealthPoint('🍃', 'hm_ptLiver', 'hm_dalBen1'),
+        HealthPoint('❤️', 'hm_ptHeartDisease', 'hm_dalBen2'),
+        HealthPoint('🍬', 'hm_ptDiabetes2', 'hm_dalBen3'),
+        HealthPoint('💪', 'hm_ptMuscleLoss', 'hm_dalBen4'),
+        HealthPoint('🩸', 'hm_ptAnaemia', 'hm_dalBen5'),
       ],
       overconsumption: [
-        HealthPoint(
-          '🤢',
-          'Digestion',
-          'Natural sugars in pulses can cause gas and bloating.',
-        ),
-        HealthPoint(
-          '🫘',
-          'Kidneys',
-          'High in protein, potassium and phosphorus. People with kidney disease may need to limit them.',
-        ),
-        HealthPoint(
-          '⚖️',
-          'Weight',
-          'A heavy ghee or butter tadka can double the calories.',
-        ),
+        HealthPoint('🤢', 'hm_ptDigestion', 'hm_dalRisk1'),
+        HealthPoint('🫘', 'hm_ptKidneys', 'hm_dalRisk2'),
+        HealthPoint('⚖️', 'hm_ptWeight', 'hm_dalRisk3'),
       ],
-      precautions: [
-        'Soak for 6–8 hours and throw away the water to reduce gas.',
-        'Never eat raw or undercooked rajma. It contains a toxin destroyed only by thorough boiling.',
-        'Pressure cook until fully soft.',
-        'Add jeera, hing or ginger to help digestion.',
-        'Pair with rice or roti for complete protein.',
-        'Go easy on ghee and butter in the tadka.',
+      precautionKeys: [
+        'hm_dalPrec1',
+        'hm_dalPrec2',
+        'hm_dalPrec3',
+        'hm_dalPrec4',
+        'hm_dalPrec5',
+        'hm_dalPrec6',
       ],
     ),
   ),
   FoodTip(
     emoji: '🥜',
-    name: 'Walnuts & almonds',
-    why: 'A small handful a day adds healthy fats.',
+    nameKey: 'hm_nutsName',
+    whyKey: 'hm_nutsWhy',
     recommended: true,
     detail: FoodDetail(
-      serving: '1 small handful, 30 g (≈15 almonds + 4 walnut halves)',
+      servingKey: 'hm_nutsServing',
       kcal: 181,
       nutrients: [
         // 20 g almonds + 10 g walnuts (USDA FoodData Central).
-        Nutrient('Healthy fats', '16 g'),
-        Nutrient('Protein', '5.7 g'),
-        Nutrient('Fibre', '3.2 g'),
-        Nutrient('Vitamin E', '5 mg'),
-        Nutrient('Magnesium', '70 mg'),
-        Nutrient('Omega-3', '0.9 g'),
+        Nutrient('hm_nutHealthyFats', '16 g'),
+        Nutrient('hm_nutProtein', '5.7 g'),
+        Nutrient('hm_nutFibre', '3.2 g'),
+        Nutrient('hm_nutVitaminE', '5 mg'),
+        Nutrient('hm_nutMagnesium', '70 mg'),
+        Nutrient('hm_nutOmega3', '0.9 g'),
       ],
       intake: [
         IntakeGuide(
           group: AgeGroup.children,
-          ages: '1–9 years',
-          amount: '10–15 g a day',
-          note:
-              'Give powdered or finely chopped. Whole nuts can choke children under 5.',
+          agesKey: 'hm_ages1to9',
+          amountKey: 'hm_nutsKidsAmt',
+          noteKey: 'hm_nutsKidsNote',
         ),
         IntakeGuide(
           group: AgeGroup.adults,
-          ages: '18–59 years',
-          amount: '30 g (1 small handful) a day',
+          agesKey: 'hm_ages18to59',
+          amountKey: 'hm_nutsAdultAmt',
         ),
         IntakeGuide(
           group: AgeGroup.elders,
-          ages: '60+ years',
-          amount: '20–30 g a day',
-          note: 'Soaked or powdered nuts are easier to chew.',
+          agesKey: 'hm_ages60plus',
+          amountKey: 'hm_nutsElderAmt',
+          noteKey: 'hm_nutsElderNote',
         ),
       ],
       benefits: [
-        HealthPoint(
-          '🍃',
-          'Liver',
-          'Vitamin E and omega-3 fats help protect the liver from fat damage.',
-        ),
-        HealthPoint(
-          '❤️',
-          'Heart disease',
-          'Regular nut eaters have lower LDL cholesterol and fewer heart attacks.',
-        ),
-        HealthPoint(
-          '🧠',
-          'Memory loss',
-          'Walnut omega-3s support brain health as you age.',
-        ),
-        HealthPoint(
-          '🍬',
-          'Type 2 diabetes',
-          'Healthy fats and fibre improve how the body handles sugar.',
-        ),
+        HealthPoint('🍃', 'hm_ptLiver', 'hm_nutsBen1'),
+        HealthPoint('❤️', 'hm_ptHeartDisease', 'hm_nutsBen2'),
+        HealthPoint('🧠', 'hm_ptMemoryLoss', 'hm_nutsBen3'),
+        HealthPoint('🍬', 'hm_ptDiabetes2', 'hm_nutsBen4'),
       ],
       overconsumption: [
-        HealthPoint(
-          '⚖️',
-          'Weight',
-          'Nuts are calorie-dense. Two handfuls instead of one adds about 180 kcal.',
-        ),
-        HealthPoint(
-          '🤢',
-          'Digestion',
-          'Large amounts can cause bloating or loose motions.',
-        ),
-        HealthPoint(
-          '🫘',
-          'Kidneys',
-          'Almonds contain oxalate, which can add to kidney stones in people prone to them.',
-        ),
-        HealthPoint(
-          '🤧',
-          'Allergy',
-          'Tree nut allergy can cause severe reactions in some people.',
-        ),
+        HealthPoint('⚖️', 'hm_ptWeight', 'hm_nutsRisk1'),
+        HealthPoint('🤢', 'hm_ptDigestion', 'hm_nutsRisk2'),
+        HealthPoint('🫘', 'hm_ptKidneys', 'hm_nutsRisk3'),
+        HealthPoint('🤧', 'hm_ptAllergy', 'hm_nutsRisk4'),
       ],
-      precautions: [
-        'Portion out one handful instead of eating from the packet.',
-        'Choose plain nuts. Avoid salted, sugar-coated or fried masala nuts.',
-        'Soak almonds overnight if they are hard to digest.',
-        'Throw away nuts that taste bitter or look mouldy. Mould (aflatoxin) damages the liver.',
-        'Store in an airtight container in a cool, dry place.',
-        'Watch for signs of allergy the first time a child eats nuts.',
+      precautionKeys: [
+        'hm_nutsPrec1',
+        'hm_nutsPrec2',
+        'hm_nutsPrec3',
+        'hm_nutsPrec4',
+        'hm_nutsPrec5',
+        'hm_nutsPrec6',
       ],
     ),
   ),
   FoodTip(
     emoji: '☕',
-    name: 'Black coffee',
-    why: 'Linked with lower liver fibrosis risk — skip the sugar.',
+    nameKey: 'hm_coffeeName',
+    whyKey: 'hm_coffeeWhy',
     recommended: true,
     detail: FoodDetail(
-      serving: '1 cup (240 ml) brewed black coffee, no sugar',
+      servingKey: 'hm_coffeeServing',
       kcal: 2,
       nutrients: [
-        Nutrient('Caffeine', '≈95 mg'),
-        Nutrient('Potassium', '116 mg'),
-        Nutrient('Magnesium', '7 mg'),
-        Nutrient('Sugar', '0 g'),
-        Nutrient('Fat', '0 g'),
-        Nutrient('Polyphenols', 'High'),
+        Nutrient('hm_nutCaffeine', '≈95 mg'),
+        Nutrient('hm_nutPotassium', '116 mg'),
+        Nutrient('hm_nutMagnesium', '7 mg'),
+        Nutrient('hm_nutSugar', '0 g'),
+        Nutrient('hm_nutFat', '0 g'),
+        Nutrient.words('hm_nutPolyphenols', 'hm_nutAmtHigh'),
       ],
       intake: [
         IntakeGuide(
           group: AgeGroup.children,
-          ages: '1–9 years',
-          amount: 'Avoid',
-          note: 'Caffeine is not recommended for children.',
+          agesKey: 'hm_ages1to9',
+          amountKey: 'hm_amtAvoid',
+          noteKey: 'hm_coffeeKidsNote',
         ),
         IntakeGuide(
           group: AgeGroup.adults,
-          ages: '18–59 years',
-          amount: '2–3 cups a day',
-          note:
-              'Up to 400 mg caffeine a day. If pregnant, no more than 200 mg (about 2 cups).',
+          agesKey: 'hm_ages18to59',
+          amountKey: 'hm_coffeeAdultAmt',
+          noteKey: 'hm_coffeeAdultNote',
         ),
         IntakeGuide(
           group: AgeGroup.elders,
-          ages: '60+ years',
-          amount: '1–2 cups a day',
-          note: 'Have it before noon to protect sleep.',
+          agesKey: 'hm_ages60plus',
+          amountKey: 'hm_coffeeElderAmt',
+          noteKey: 'hm_coffeeElderNote',
         ),
       ],
       benefits: [
-        HealthPoint(
-          '🍃',
-          'Liver fibrosis',
-          'Regular coffee drinkers have lower rates of liver scarring and cirrhosis.',
-        ),
-        HealthPoint(
-          '🎗️',
-          'Liver cancer',
-          'Studies link 2–3 cups a day with a lower risk of liver cancer.',
-        ),
-        HealthPoint(
-          '🍬',
-          'Type 2 diabetes',
-          'Long-term coffee drinking is linked with lower diabetes risk.',
-        ),
-        HealthPoint(
-          '🧠',
-          "Parkinson's disease",
-          'Caffeine is linked with a lower risk of Parkinson\'s.',
-        ),
+        HealthPoint('🍃', 'hm_ptLiverFibrosis', 'hm_coffeeBen1'),
+        HealthPoint('🎗️', 'hm_ptLiverCancer', 'hm_coffeeBen2'),
+        HealthPoint('🍬', 'hm_ptDiabetes2', 'hm_coffeeBen3'),
+        HealthPoint('🧠', 'hm_ptParkinsons', 'hm_coffeeBen4'),
       ],
       overconsumption: [
-        HealthPoint(
-          '😴',
-          'Sleep & nerves',
-          'Too much causes poor sleep, anxiety and jitters.',
-        ),
-        HealthPoint(
-          '❤️',
-          'Heart',
-          'Can cause palpitations and a short rise in blood pressure.',
-        ),
-        HealthPoint(
-          '🔥',
-          'Stomach',
-          'Can worsen acidity and reflux, especially on an empty stomach.',
-        ),
-        HealthPoint(
-          '🦴',
-          'Bones',
-          'Very high intake slightly reduces calcium absorption.',
-        ),
+        HealthPoint('😴', 'hm_ptSleepNerves', 'hm_coffeeRisk1'),
+        HealthPoint('❤️', 'hm_ptHeart', 'hm_coffeeRisk2'),
+        HealthPoint('🔥', 'hm_ptStomach', 'hm_coffeeRisk3'),
+        HealthPoint('🦴', 'hm_ptBones', 'hm_coffeeRisk4'),
       ],
-      precautions: [
-        'Skip the sugar and cream. Sugar adds liver fat and cancels the benefit.',
-        'Avoid coffee after about 4 pm.',
-        'Have it after breakfast if you get acidity.',
-        'Paper-filtered coffee is better for cholesterol than boiled, unfiltered coffee.',
-        'Pregnant? Keep to 2 cups or fewer a day.',
-        'Have heart rhythm problems or high BP? Ask your doctor first.',
+      precautionKeys: [
+        'hm_coffeePrec1',
+        'hm_coffeePrec2',
+        'hm_coffeePrec3',
+        'hm_coffeePrec4',
+        'hm_coffeePrec5',
+        'hm_coffeePrec6',
       ],
     ),
   ),
   FoodTip(
     emoji: '🥤',
-    name: 'Sugary drinks',
-    why:
-        'Soft drinks and packaged juices add fructose, which builds liver fat.',
+    nameKey: 'hm_drinksName',
+    whyKey: 'hm_drinksWhy',
     recommended: false,
     detail: FoodDetail(
-      serving: '1 can of cola (330 ml)',
+      servingKey: 'hm_drinksServing',
       kcal: 139,
       nutrients: [
-        Nutrient('Sugar', '35 g (≈9 tsp)'),
-        Nutrient('Carbs', '35 g'),
-        Nutrient('Caffeine', '≈34 mg'),
-        Nutrient('Fibre', '0 g'),
-        Nutrient('Protein', '0 g'),
-        Nutrient('Vitamins', 'None'),
+        Nutrient.words('hm_nutSugar', 'hm_nutAmtColaSugar'),
+        Nutrient('hm_nutCarbs', '35 g'),
+        Nutrient('hm_nutCaffeine', '≈34 mg'),
+        Nutrient('hm_nutFibre', '0 g'),
+        Nutrient('hm_nutProtein', '0 g'),
+        Nutrient.words('hm_nutVitamins', 'hm_nutAmtNone'),
       ],
       intake: [
         IntakeGuide(
           group: AgeGroup.children,
-          ages: '1–9 years',
-          amount: 'Avoid',
-          note:
-              'One can has more sugar than a child should have in a whole day.',
+          agesKey: 'hm_ages1to9',
+          amountKey: 'hm_amtAvoid',
+          noteKey: 'hm_drinksKidsNote',
         ),
         IntakeGuide(
           group: AgeGroup.adults,
-          ages: '18–59 years',
-          amount: 'Best avoided; an occasional small glass at most',
-          note:
-              'WHO advises under 25 g (6 tsp) of added sugar a day from all foods.',
+          agesKey: 'hm_ages18to59',
+          amountKey: 'hm_drinksAdultAmt',
+          noteKey: 'hm_drinksAdultNote',
         ),
         IntakeGuide(
           group: AgeGroup.elders,
-          ages: '60+ years',
-          amount: 'Avoid',
-          note: 'Choose water, chaas or unsweetened nimbu pani.',
+          agesKey: 'hm_ages60plus',
+          amountKey: 'hm_amtAvoid',
+          noteKey: 'hm_drinksElderNote',
         ),
       ],
       benefits: [
-        HealthPoint(
-          '🆘',
-          'Low blood sugar (hypo)',
-          'For people on diabetes medicines, a small glass of juice can quickly correct a sugar low.',
-        ),
+        HealthPoint('🆘', 'hm_ptHypo', 'hm_drinksBen1'),
       ],
       overconsumption: [
-        HealthPoint(
-          '🍃',
-          'Liver',
-          'The liver turns fructose straight into fat. Sugary drinks are a leading cause of fatty liver.',
-        ),
-        HealthPoint(
-          '🍬',
-          'Pancreas & blood sugar',
-          'Daily sugary drinks raise the risk of insulin resistance and type 2 diabetes.',
-        ),
-        HealthPoint('❤️', 'Heart', 'Raise triglycerides and blood pressure.'),
-        HealthPoint(
-          '🦷',
-          'Teeth',
-          'Sugar and acid together cause tooth decay.',
-        ),
-        HealthPoint(
-          '⚖️',
-          'Weight',
-          'Liquid calories don\'t fill you up, so they add weight quickly.',
-        ),
+        HealthPoint('🍃', 'hm_ptLiver', 'hm_drinksRisk1'),
+        HealthPoint('🍬', 'hm_ptPancreasSugar', 'hm_drinksRisk2'),
+        HealthPoint('❤️', 'hm_ptHeart', 'hm_drinksRisk3'),
+        HealthPoint('🦷', 'hm_ptTeeth', 'hm_drinksRisk4'),
+        HealthPoint('⚖️', 'hm_ptWeight', 'hm_drinksRisk5'),
       ],
       swaps: [
-        HealthPoint(
-          '🍋',
-          'Nimbu pani',
-          'Fresh lime water with a pinch of salt. No sugar, or very little.',
-        ),
-        HealthPoint(
-          '🥛',
-          'Chaas (buttermilk)',
-          'Cooling, with protein and gut-friendly bacteria.',
-        ),
-        HealthPoint(
-          '🥥',
-          'Coconut water',
-          'Natural electrolytes. Have one glass, not several.',
-        ),
-        HealthPoint(
-          '🍊',
-          'Whole fruit',
-          'Eat the orange instead of drinking the juice. The fibre slows the sugar.',
-        ),
+        HealthPoint('🍋', 'hm_drinksSwap1Title', 'hm_drinksSwap1Body'),
+        HealthPoint('🥛', 'hm_drinksSwap2Title', 'hm_drinksSwap2Body'),
+        HealthPoint('🥥', 'hm_drinksSwap3Title', 'hm_drinksSwap3Body'),
+        HealthPoint('🍊', 'hm_drinksSwap4Title', 'hm_drinksSwap4Body'),
       ],
-      precautions: [
-        '"Fruit drink" and "nectar" usually mean added sugar. Read the label.',
-        'Even 100% fruit juice is high in sugar. Keep to one small glass.',
-        'More than 5 g sugar per 100 ml is high.',
-        'Diet sodas avoid sugar, but plain water is still the best choice.',
-        'Don\'t give sugary drinks to children.',
+      precautionKeys: [
+        'hm_drinksPrec1',
+        'hm_drinksPrec2',
+        'hm_drinksPrec3',
+        'hm_drinksPrec4',
+        'hm_drinksPrec5',
       ],
     ),
   ),
   FoodTip(
     emoji: '🍟',
-    name: 'Fried snacks',
-    why: 'Samosas, pakoras and chips are high in unhealthy fats.',
+    nameKey: 'hm_friedName',
+    whyKey: 'hm_friedWhy',
     recommended: false,
     detail: FoodDetail(
-      serving: '1 medium samosa (≈70 g)',
+      servingKey: 'hm_friedServing',
       kcal: 240,
       nutrients: [
         // Approximate: varies a lot with size, filling and oil.
-        Nutrient('Fat', '≈14 g'),
-        Nutrient('Carbs', '≈25 g'),
-        Nutrient('Protein', '≈4 g'),
-        Nutrient('Fibre', '≈2 g'),
-        Nutrient('Sodium', '≈350 mg'),
-        Nutrient('Trans fat', 'High if oil is reused'),
+        Nutrient('hm_nutFat', '≈14 g'),
+        Nutrient('hm_nutCarbs', '≈25 g'),
+        Nutrient('hm_nutProtein', '≈4 g'),
+        Nutrient('hm_nutFibre', '≈2 g'),
+        Nutrient('hm_nutSodium', '≈350 mg'),
+        Nutrient.words('hm_nutTransFat', 'hm_nutAmtHighIfReused'),
       ],
       intake: [
         IntakeGuide(
           group: AgeGroup.children,
-          ages: '1–9 years',
-          amount: 'An occasional treat, once a week at most',
-          note: 'Keep it to a small portion.',
+          agesKey: 'hm_ages1to9',
+          amountKey: 'hm_friedKidsAmt',
+          noteKey: 'hm_friedKidsNote',
         ),
         IntakeGuide(
           group: AgeGroup.adults,
-          ages: '18–59 years',
-          amount: 'Once a week or less',
-          note: 'One piece, not a plateful.',
+          agesKey: 'hm_ages18to59',
+          amountKey: 'hm_friedAdultAmt',
+          noteKey: 'hm_friedAdultNote',
         ),
         IntakeGuide(
           group: AgeGroup.elders,
-          ages: '60+ years',
-          amount: 'Rarely',
-          note: 'Heavy to digest. Best avoided with heart disease or high BP.',
+          agesKey: 'hm_ages60plus',
+          amountKey: 'hm_friedElderAmt',
+          noteKey: 'hm_friedElderNote',
         ),
       ],
       overconsumption: [
-        HealthPoint(
-          '🍃',
-          'Liver',
-          'Extra calories and saturated fats build up as liver fat.',
-        ),
-        HealthPoint(
-          '❤️',
-          'Heart',
-          'Trans fats from reused oil raise bad cholesterol and lower good cholesterol.',
-        ),
-        HealthPoint('🩺', 'Blood pressure', 'High salt raises blood pressure.'),
-        HealthPoint(
-          '🔥',
-          'Stomach',
-          'Oily food often triggers acidity and indigestion.',
-        ),
-        HealthPoint(
-          '⚖️',
-          'Weight',
-          'One samosa is about the calories of two rotis with dal.',
-        ),
+        HealthPoint('🍃', 'hm_ptLiver', 'hm_friedRisk1'),
+        HealthPoint('❤️', 'hm_ptHeart', 'hm_friedRisk2'),
+        HealthPoint('🩺', 'hm_ptBloodPressure', 'hm_friedRisk3'),
+        HealthPoint('🔥', 'hm_ptStomach', 'hm_friedRisk4'),
+        HealthPoint('⚖️', 'hm_ptWeight', 'hm_friedRisk5'),
       ],
       swaps: [
-        HealthPoint(
-          '🫘',
-          'Roasted chana',
-          'Crunchy, high in protein and fibre.',
-        ),
-        HealthPoint(
-          '🍿',
-          'Roasted makhana',
-          'Light and low in fat. Roast with a little ghee and spices.',
-        ),
-        HealthPoint(
-          '🥗',
-          'Sprouts chaat',
-          'Tangy and filling, with lots of fibre.',
-        ),
-        HealthPoint(
-          '🍥',
-          'Steamed snacks',
-          'Dhokla, idli or momos (steamed, not fried).',
-        ),
+        HealthPoint('🫘', 'hm_friedSwap1Title', 'hm_friedSwap1Body'),
+        HealthPoint('🍿', 'hm_friedSwap2Title', 'hm_friedSwap2Body'),
+        HealthPoint('🥗', 'hm_friedSwap3Title', 'hm_friedSwap3Body'),
+        HealthPoint('🍥', 'hm_friedSwap4Title', 'hm_friedSwap4Body'),
       ],
-      precautions: [
-        'Avoid street snacks fried in dark, reused oil.',
-        'At home, don\'t reuse frying oil more than 2–3 times (FSSAI advice).',
-        'Try an air fryer or oven for samosas and pakoras.',
-        'Eat with mint chutney and salad instead of ketchup.',
-        'Stick to one piece and eat it slowly.',
+      precautionKeys: [
+        'hm_friedPrec1',
+        'hm_friedPrec2',
+        'hm_friedPrec3',
+        'hm_friedPrec4',
+        'hm_friedPrec5',
       ],
     ),
   ),
   FoodTip(
     emoji: '🍞',
-    name: 'Maida & refined carbs',
-    why: 'White bread, biscuits and bakery items spike blood sugar.',
+    nameKey: 'hm_maidaName',
+    whyKey: 'hm_maidaWhy',
     recommended: false,
     detail: FoodDetail(
-      serving: '2 slices white bread (≈50 g)',
+      servingKey: 'hm_maidaServing',
       kcal: 133,
       nutrients: [
         // White bread, per 50 g (USDA FoodData Central).
-        Nutrient('Carbs', '25 g'),
-        Nutrient('Fibre', '1.4 g'),
-        Nutrient('Protein', '4.4 g'),
-        Nutrient('Sugar', '2.5 g'),
-        Nutrient('Sodium', '245 mg'),
-        Nutrient('Glycaemic index', 'High (≈75)'),
+        Nutrient('hm_nutCarbs', '25 g'),
+        Nutrient('hm_nutFibre', '1.4 g'),
+        Nutrient('hm_nutProtein', '4.4 g'),
+        Nutrient('hm_nutSugar', '2.5 g'),
+        Nutrient('hm_nutSodium', '245 mg'),
+        Nutrient.words('hm_nutGlycaemicIndex', 'hm_nutAmtHighGi'),
       ],
       intake: [
         IntakeGuide(
           group: AgeGroup.children,
-          ages: '1–9 years',
-          amount: 'Occasionally',
-          note: 'Choose whole-wheat bread and home-made snacks instead.',
+          agesKey: 'hm_ages1to9',
+          amountKey: 'hm_amtOccasionally',
+          noteKey: 'hm_maidaKidsNote',
         ),
         IntakeGuide(
           group: AgeGroup.adults,
-          ages: '18–59 years',
-          amount: 'Keep to a minimum',
-          note: 'Swap for whole grains most days.',
+          agesKey: 'hm_ages18to59',
+          amountKey: 'hm_maidaAdultAmt',
+          noteKey: 'hm_maidaAdultNote',
         ),
         IntakeGuide(
           group: AgeGroup.elders,
-          ages: '60+ years',
-          amount: 'Occasionally',
-          note: 'Soft whole-wheat options are just as easy to chew.',
+          agesKey: 'hm_ages60plus',
+          amountKey: 'hm_amtOccasionally',
+          noteKey: 'hm_maidaElderNote',
         ),
       ],
       benefits: [
-        HealthPoint(
-          '🤒',
-          'Upset stomach',
-          'Plain toast is gentle on the stomach when recovering from loose motions or vomiting.',
-        ),
+        HealthPoint('🤒', 'hm_ptUpsetStomach', 'hm_maidaBen1'),
       ],
       overconsumption: [
-        HealthPoint(
-          '🍃',
-          'Liver',
-          'Quick sugar spikes push the liver to store more fat.',
-        ),
-        HealthPoint(
-          '🍬',
-          'Blood sugar',
-          'Digests almost like sugar, raising the risk of type 2 diabetes.',
-        ),
-        HealthPoint(
-          '🚽',
-          'Gut',
-          'Very little fibre, which can lead to constipation.',
-        ),
-        HealthPoint(
-          '❤️',
-          'Heart',
-          'Raises triglycerides, a type of fat in the blood.',
-        ),
-        HealthPoint(
-          '⚖️',
-          'Weight',
-          'Leaves you hungry again soon, so you eat more.',
-        ),
+        HealthPoint('🍃', 'hm_ptLiver', 'hm_maidaRisk1'),
+        HealthPoint('🍬', 'hm_ptBloodSugar', 'hm_maidaRisk2'),
+        HealthPoint('🚽', 'hm_ptGut', 'hm_maidaRisk3'),
+        HealthPoint('❤️', 'hm_ptHeart', 'hm_maidaRisk4'),
+        HealthPoint('⚖️', 'hm_ptWeight', 'hm_maidaRisk5'),
       ],
       swaps: [
-        HealthPoint(
-          '🫓',
-          'Whole-wheat roti',
-          'Atta keeps the bran and fibre that maida loses.',
-        ),
-        HealthPoint(
-          '🍞',
-          '100% whole-wheat bread',
-          'Check that "whole wheat" is the first ingredient.',
-        ),
-        HealthPoint(
-          '🌾',
-          'Ragi or jowar roti',
-          'Millets add fibre, calcium and iron.',
-        ),
-        HealthPoint(
-          '🥣',
-          'Oats or vegetable upma',
-          'A filling breakfast that releases energy slowly.',
-        ),
+        HealthPoint('🫓', 'hm_maidaSwap1Title', 'hm_maidaSwap1Body'),
+        HealthPoint('🍞', 'hm_maidaSwap2Title', 'hm_maidaSwap2Body'),
+        HealthPoint('🌾', 'hm_maidaSwap3Title', 'hm_maidaSwap3Body'),
+        HealthPoint('🥣', 'hm_maidaSwap4Title', 'hm_maidaSwap4Body'),
       ],
-      precautions: [
-        '"Wheat flour" or "refined wheat flour" on a label means maida.',
-        '"Brown bread" is often coloured maida. Look for "100% whole wheat".',
-        'Bakery items, naan and pizza bases are mostly maida, and often high in fat and sugar too.',
-        'Pair any bread with protein or vegetables to slow the sugar rise.',
-        'Cut down on biscuits and rusks with tea.',
+      precautionKeys: [
+        'hm_maidaPrec1',
+        'hm_maidaPrec2',
+        'hm_maidaPrec3',
+        'hm_maidaPrec4',
+        'hm_maidaPrec5',
       ],
     ),
   ),
 ];
 
 const List<HealthTip> healthTips = [
-  HealthTip(
-    emoji: '🚶',
-    title: 'Walk 30 minutes a day',
-    body:
-        'Brisk walking 5 days a week reduces liver fat, even without weight loss.',
-  ),
-  HealthTip(
-    emoji: '⚖️',
-    title: 'Aim for 7–10% weight loss',
-    body:
-        'If you are overweight, losing 7–10% of body weight can reverse fatty liver.',
-  ),
-  HealthTip(
-    emoji: '😴',
-    title: 'Sleep 7–8 hours',
-    body: 'Poor sleep is linked to weight gain and insulin resistance.',
-  ),
-  HealthTip(
-    emoji: '🩸',
-    title: 'Check your sugar',
-    body: 'Get HbA1c tested once a year — diabetes speeds up liver damage.',
-  ),
-  HealthTip(
-    emoji: '💊',
-    title: 'Avoid self-medication',
-    body:
-        'Some painkillers and herbal supplements can harm the liver. Ask your doctor first.',
-  ),
+  HealthTip(emoji: '🚶', titleKey: 'hm_tip1Title', bodyKey: 'hm_tip1Body'),
+  HealthTip(emoji: '⚖️', titleKey: 'hm_tip2Title', bodyKey: 'hm_tip2Body'),
+  HealthTip(emoji: '😴', titleKey: 'hm_tip3Title', bodyKey: 'hm_tip3Body'),
+  HealthTip(emoji: '🩸', titleKey: 'hm_tip4Title', bodyKey: 'hm_tip4Body'),
+  HealthTip(emoji: '💊', titleKey: 'hm_tip5Title', bodyKey: 'hm_tip5Body'),
 ];
 
 const List<Faq> faqs = [
-  Faq(
-    question: 'What is fatty liver?',
-    answer:
-        'Fatty liver means extra fat has built up in liver cells. The most '
-        'common type, NAFLD (now also called MASLD), is linked to diet, weight '
-        'and diabetes — not alcohol.',
-  ),
-  Faq(
-    question: 'Can fatty liver be reversed?',
-    answer:
-        'Yes. In its early stages, fatty liver can often be reversed with '
-        'weight loss, a healthier diet and regular exercise.',
-  ),
-  Faq(
-    question: 'I am not overweight. Can I still have fatty liver?',
-    answer:
-        'Yes. "Lean" fatty liver is common in South Asians, who can store '
-        'fat around the organs even at a normal weight.',
-  ),
-  Faq(
-    question: 'What does my FIB-4 score mean?',
-    answer:
-        'FIB-4 estimates the chance of liver scarring (fibrosis) from four '
-        'blood test values. It is a screening tool, not a diagnosis.',
-  ),
-  Faq(
-    question: 'Which doctor should I see?',
-    answer:
-        'Start with your family doctor. For an intermediate or high score, '
-        'they may refer you to a gastroenterologist or hepatologist.',
-  ),
-  Faq(
-    question: 'Which tests confirm fatty liver?',
-    answer:
-        'An ultrasound can show liver fat. A FibroScan measures liver '
-        'stiffness to check for scarring.',
-  ),
+  Faq(questionKey: 'hm_faq1Q', answerKey: 'hm_faq1A'),
+  Faq(questionKey: 'hm_faq2Q', answerKey: 'hm_faq2A'),
+  Faq(questionKey: 'hm_faq3Q', answerKey: 'hm_faq3A'),
+  Faq(questionKey: 'hm_faq4Q', answerKey: 'hm_faq4A'),
+  Faq(questionKey: 'hm_faq5Q', answerKey: 'hm_faq5A'),
+  Faq(questionKey: 'hm_faq6Q', answerKey: 'hm_faq6A'),
 ];

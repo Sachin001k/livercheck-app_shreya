@@ -3,9 +3,19 @@ import 'package:livrcheck_app/survey/assess.dart';
 
 void main() {
   final healthy = <String, dynamic>{
-    'sex': 'f', 'age': 28.0, 'height': 162.0, 'weight': 55.0, 'waist': 72.0,
-    'activity': 'regular', 'sugar': 'rarely', 'fried': 'rarely', 'sleep': 7.5,
-    'smoke': 'never', 'alcohol': 'never', 'conditions': ['none'], 'family': ['none'],
+    'sex': 'f',
+    'age': 28.0,
+    'height': 162.0,
+    'weight': 55.0,
+    'waist': 72.0,
+    'activity': 'regular',
+    'sugar': 'rarely',
+    'fried': 'rarely',
+    'sleep': 7.5,
+    'smoke': 'never',
+    'alcohol': 'never',
+    'conditions': ['none'],
+    'family': ['none'],
   };
 
   test('a healthy young adult scores well with no doctor warning', () {
@@ -13,15 +23,24 @@ void main() {
     expect(r.score, greaterThanOrEqualTo(80));
     expect(r.tier, 'Thriving');
     expect(r.seeDoctor, isFalse);
-    expect(r.organs.keys, containsAll(['liver', 'heart', 'kidneys', 'lungs', 'pancreas']));
+    expect(
+      r.organs.keys,
+      containsAll(['liver', 'heart', 'kidneys', 'lungs', 'pancreas']),
+    );
     expect(r.fib4, isNull);
   });
 
   test('diabetes, BP and smoking give a low score and a doctor warning', () {
     final r = assess({
       ...healthy,
-      'sex': 'm', 'age': 55.0, 'weight': 85.0, 'waist': 102.0, 'activity': 'sit',
-      'sugar': 'daily', 'smoke': 'current', 'conditions': ['diabetes', 'bp'],
+      'sex': 'm',
+      'age': 55.0,
+      'weight': 85.0,
+      'waist': 102.0,
+      'activity': 'sit',
+      'sugar': 'daily',
+      'smoke': 'current',
+      'conditions': ['diabetes', 'bp'],
     });
     expect(r.score, lessThan(40));
     expect(r.seeDoctor, isTrue);
@@ -29,17 +48,20 @@ void main() {
     expect(r.organs['lungs']!.level, 'high');
   });
 
-  test('FIB-4 is calculated from lab values, with lakh platelets converted', () {
-    final r = assess({
-      ...healthy,
-      'age': 50.0,
-      'labs': {'ast': 40.0, 'alt': 30.0, 'plt': 2.0, 'unit': 'lakh'},
-    });
-    // (50 × 40) / (200 × √30) = 1.83 → grey zone.
-    expect(r.fib4, closeTo(1.83, 0.01));
-    expect(r.organs['liver']!.level, 'mod');
-    expect(r.tests, contains('FibroScan'));
-  });
+  test(
+    'FIB-4 is calculated from lab values, with lakh platelets converted',
+    () {
+      final r = assess({
+        ...healthy,
+        'age': 50.0,
+        'labs': {'ast': 40.0, 'alt': 30.0, 'plt': 2.0, 'unit': 'lakh'},
+      });
+      // (50 × 40) / (200 × √30) = 1.83 → grey zone.
+      expect(r.fib4, closeTo(1.83, 0.01));
+      expect(r.organs['liver']!.level, 'mod');
+      expect(r.tests, contains('sv_testFibroscan'));
+    },
+  );
 
   test('missing waist is estimated', () {
     final r = assess({...healthy, 'waist': null});

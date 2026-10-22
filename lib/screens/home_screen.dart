@@ -5,6 +5,7 @@ import '../daily/daily_checkin_card.dart';
 import '../data/home_content.dart';
 import '../services/data_service.dart';
 import '../theme.dart';
+import '../widgets/tab_back.dart';
 import '../widgets/home_extras.dart';
 import 'food_detail_sheet.dart';
 
@@ -15,10 +16,18 @@ class HomeScreen extends StatelessWidget {
   final Profile profile;
   final VoidCallback onStartCheck;
 
+  /// Whether Home is the tab on screen (for Android back handling).
+  final bool isActive;
+
+  /// Lets Android back close the daily log before leaving Home.
+  final TabBack? back;
+
   const HomeScreen({
     super.key,
     required this.profile,
     required this.onStartCheck,
+    this.isActive = true,
+    this.back,
   });
 
   @override
@@ -55,7 +64,11 @@ class HomeScreen extends StatelessWidget {
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final check = _CheckCard(onStart: onStartCheck);
-                final daily = DailyCheckinCard(profile: profile);
+                final daily = DailyCheckinCard(
+                  profile: profile,
+                  isActive: isActive,
+                  back: back,
+                );
                 if (constraints.maxWidth < 620) {
                   return Column(
                     children: [check, const SizedBox(height: 16), daily],
@@ -112,12 +125,12 @@ class HomeScreen extends StatelessWidget {
                     ExpansionTile(
                       shape: const Border(),
                       title: Text(
-                        faq.question,
+                        context.t(faq.questionKey),
                         style: const TextStyle(fontWeight: FontWeight.w500),
                       ),
                       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
                       expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                      children: [Text(faq.answer)],
+                      children: [Text(context.t(faq.answerKey))],
                     ),
                 ],
               ),
@@ -181,15 +194,19 @@ class _CheckCardState extends State<_CheckCard>
 
   @override
   Widget build(BuildContext context) {
-    const organs = [
-      '🍃 Liver',
-      '❤️ Heart',
-      '🫘 Kidneys',
-      '🫁 Lungs',
-      '🍬 Sugar',
+    final organs = [
+      '🍃 ${context.t('hm_ptLiver')}',
+      '❤️ ${context.t('hm_ptHeart')}',
+      '🫘 ${context.t('hm_ptKidneys')}',
+      '🫁 ${context.t('hm_organLungs')}',
+      '🍬 ${context.t('hm_organSugar')}',
     ];
+    // A minimum (not fixed) height: the card matches the daily check-in
+    // card beside it, but grows instead of overflowing with long
+    // translations or large text. IntrinsicHeight lets the 🩺 area
+    // (Expanded) fill whatever room is left.
     return Container(
-      height: dailyCardHeight(context),
+      constraints: BoxConstraints(minHeight: dailyCardHeight(context)),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -206,75 +223,77 @@ class _CheckCardState extends State<_CheckCard>
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.t('homeCheckCardTitle'),
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
+      child: IntrinsicHeight(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              context.t('homeCheckCardTitle'),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            context.t('homeCheckCardBody'),
-            style: const TextStyle(color: Colors.white70, fontSize: 15),
-          ),
-          Expanded(
-            child: Center(
-              child: AnimatedBuilder(
-                animation: _float,
-                builder: (_, child) => Transform.translate(
-                  offset: Offset(
-                    0,
-                    -8 * Curves.easeInOut.transform(_float.value),
+            const SizedBox(height: 6),
+            Text(
+              context.t('homeCheckCardBody'),
+              style: const TextStyle(color: Colors.white70, fontSize: 15),
+            ),
+            Expanded(
+              child: Center(
+                child: AnimatedBuilder(
+                  animation: _float,
+                  builder: (_, child) => Transform.translate(
+                    offset: Offset(
+                      0,
+                      -8 * Curves.easeInOut.transform(_float.value),
+                    ),
+                    child: child,
                   ),
-                  child: child,
+                  child: const Text('🩺', style: TextStyle(fontSize: 88)),
                 ),
-                child: const Text('🩺', style: TextStyle(fontSize: 88)),
               ),
             ),
-          ),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              for (final o in organs)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 5,
+            Wrap(
+              spacing: 6,
+              runSpacing: 6,
+              children: [
+                for (final o in organs)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Text(
+                      o,
+                      style: const TextStyle(color: Colors.white, fontSize: 12),
+                    ),
                   ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    o,
-                    style: const TextStyle(color: Colors.white, fontSize: 12),
-                  ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton(
+                onPressed: widget.onStart,
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: tealDark,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton(
-              onPressed: widget.onStart,
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: tealDark,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
-              child: Text(
-                context.t('startCheck'),
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                child: Text(
+                  context.t('startCheck'),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -330,13 +349,13 @@ class _FoodCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  tip.name,
+                  context.t(tip.nameKey),
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 4),
                 Expanded(
                   child: Text(
-                    tip.why,
+                    context.t(tip.whyKey),
                     style: Theme.of(context).textTheme.bodySmall,
                     overflow: TextOverflow.fade,
                   ),
@@ -397,11 +416,14 @@ class _HealthTipCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    tip.title,
+                    context.t(tip.titleKey),
                     style: const TextStyle(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
-                  Text(tip.body, style: Theme.of(context).textTheme.bodySmall),
+                  Text(
+                    context.t(tip.bodyKey),
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
                 ],
               ),
             ),

@@ -2,14 +2,24 @@
 library;
 
 class Achievement {
+  /// Stable id (never shown; safe to use in tests and storage).
+  final String id;
   final String emoji;
-  final String label;
 
-  /// How to earn it, shown while locked.
-  final String hint;
+  /// Translation key of the badge name (show with `context.t`).
+  final String labelKey;
+
+  /// Translation key of how to earn it, shown while locked.
+  final String hintKey;
   final bool unlocked;
 
-  const Achievement(this.emoji, this.label, this.hint, this.unlocked);
+  const Achievement(
+    this.id,
+    this.emoji,
+    this.labelKey,
+    this.hintKey,
+    this.unlocked,
+  );
 }
 
 List<Achievement> computeBadges({
@@ -22,53 +32,73 @@ List<Achievement> computeBadges({
   required int specialSurveysDone,
 }) => [
   Achievement(
+    'first_check',
     '🩺',
-    'First check',
-    'Take your first health check',
+    'rw_badgeFirstCheck',
+    'rw_badgeFirstCheckHint',
     healthChecks >= 1,
   ),
   Achievement(
+    'improved',
     '📈',
-    'Improved score',
-    'Beat your first health check score',
+    'rw_badgeImproved',
+    'rw_badgeImprovedHint',
     scoreImproved,
   ),
   Achievement(
+    'streak3',
     '🔥',
-    '3-day streak',
-    'Check in 3 days in a row',
+    'rw_badgeStreak3',
+    'rw_badgeStreak3Hint',
     longestStreak >= 3,
   ),
   Achievement(
+    'streak7',
     '🏆',
-    '7-day streak',
-    'Check in 7 days in a row',
+    'rw_badgeStreak7',
+    'rw_badgeStreak7Hint',
     longestStreak >= 7,
   ),
   Achievement(
+    'streak30',
     '💎',
-    '30-day streak',
-    'Check in 30 days in a row',
+    'rw_badgeStreak30',
+    'rw_badgeStreak30Hint',
     longestStreak >= 30,
   ),
   Achievement(
+    'day90',
     '🎯',
-    '90+ day',
-    'Score 90 or more in a daily log',
+    'rw_badgeDay90',
+    'rw_badgeDay90Hint',
     bestDayScore >= 90,
   ),
-  Achievement('🪙', '100 coins', 'Collect 100 coins', coins >= 100),
-  Achievement('💰', '500 coins', 'Collect 500 coins', coins >= 500),
   Achievement(
+    'coins100',
+    '🪙',
+    'rw_badgeCoins100',
+    'rw_badgeCoins100Hint',
+    coins >= 100,
+  ),
+  Achievement(
+    'coins500',
+    '💰',
+    'rw_badgeCoins500',
+    'rw_badgeCoins500Hint',
+    coins >= 500,
+  ),
+  Achievement(
+    'blood_report',
     '🧪',
-    'Blood report',
-    'Add blood test values in a health check',
+    'rw_badgeBloodReport',
+    'rw_badgeBloodReportHint',
     bloodReportAdded,
   ),
   Achievement(
+    'survey_star',
     '📣',
-    'Survey star',
-    'Complete a special survey',
+    'rw_badgeSurveyStar',
+    'rw_badgeSurveyStarHint',
     specialSurveysDone >= 1,
   ),
 ];

@@ -21,34 +21,21 @@ import 'profile_setup_screen.dart';
 // "Every day" history and badges. Data lives in Supabase (see ProgressStore
 // and DailyStore).
 
-const _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
-
-String _time(DateTime d) {
+String _time(BuildContext context, DateTime d) {
   final h = d.hour % 12 == 0 ? 12 : d.hour % 12;
-  return '$h:${d.minute.toString().padLeft(2, '0')} ${d.hour < 12 ? 'am' : 'pm'}';
+  return context.tf(d.hour < 12 ? 'pf_timeAm' : 'pf_timePm', {
+    't': '$h:${d.minute.toString().padLeft(2, '0')}',
+  });
 }
 
-String _dayLabel(DateTime d) {
+String _dayLabel(BuildContext context, DateTime d) {
   final now = DateTime.now();
   final day = DateTime(d.year, d.month, d.day);
   final today = DateTime(now.year, now.month, now.day);
   final diff = today.difference(day).inDays;
-  if (diff == 0) return 'Today';
-  if (diff == 1) return 'Yesterday';
-  return '${d.day} ${_months[d.month - 1]} ${d.year}';
+  if (diff == 0) return context.t('pf_today');
+  if (diff == 1) return context.t('pf_yesterday');
+  return shortDate(context, d);
 }
 
 Color _scoreColor(int score, ColorScheme cs) => score >= 80
@@ -56,7 +43,7 @@ Color _scoreColor(int score, ColorScheme cs) => score >= 80
     : score >= 60
     ? cs.primary
     : score >= 40
-    ? kMod
+    ? kModDark
     : kHigh;
 
 /// Coins needed per level.
@@ -224,40 +211,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
       const SizedBox(height: 16),
       _WeeklyCard(summary: weeklySummary(daily.days.values, now)),
       const SizedBox(height: 16),
-      GridView.count(
-        crossAxisCount: 2,
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.9,
+      StatGrid(
         children: [
-          _StatCard(
+          StatCard(
             icon: Icons.savings,
-            label: 'Coins',
+            label: context.t('pf_coins'),
             value: '$coins',
-            caption: 'Level $level',
+            caption: context.tf('pf_levelN', {'level': level}),
             color: Colors.amber.shade800,
           ),
-          _StatCard(
+          StatCard(
             icon: Icons.fact_check,
             label: context.t('checksDone'),
             value: '${history.length}',
-            caption: 'Health checks',
+            caption: context.t('pf_healthChecks'),
             color: tealDark,
           ),
-          _StatCard(
+          StatCard(
             icon: Icons.monitor_heart,
             label: context.t('latestFib4'),
             value: latestFib4?.score.toStringAsFixed(2) ?? '—',
             caption: latestFib4 == null
-                ? 'Add a blood report in a check'
+                ? context.t('pf_addBloodReport')
                 : context.t(_tierKey(latestFib4.tier)),
             color: latestFib4 == null
                 ? Colors.grey
                 : _tierColor(latestFib4.tier),
           ),
-          _StatCard(
+          StatCard(
             icon: Icons.monitor_weight,
             label: context.t('bmiLabel'),
             value: bmi?.toStringAsFixed(1) ?? '—',
@@ -269,10 +250,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ],
       ),
       if (history.length > 1) ...[
-        const _SectionTitle('Score history'),
+        _SectionTitle(context.t('pf_scoreHistory')),
         _ScoreChart(history: history),
       ],
-      const _SectionTitle('Every day'),
+      _SectionTitle(context.t('pf_everyDay')),
       _EverydayList(
         daily: daily,
         history: history,
@@ -387,8 +368,14 @@ class _HeaderCard extends StatelessWidget {
                   Text(contact, style: const TextStyle(color: Colors.white70)),
                 const SizedBox(height: 4),
                 Text(
-                  '${context.t('memberSince')} ${_months[since.month - 1]} ${since.year}'
-                  '${profile.age != null ? ' · ${profile.age} y' : ''}',
+                  [
+                    context.tf('pf_memberSinceDate', {
+                      'm': monthShort(context, since.month),
+                      'y': since.year,
+                    }),
+                    if (profile.age != null)
+                      context.tf('pf_ageYears', {'n': profile.age}),
+                  ].join(' · '),
                   style: const TextStyle(color: Colors.white70, fontSize: 12),
                 ),
               ],
@@ -444,20 +431,22 @@ class _ScoreCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Get your health score',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+              Text(
+                context.t('pf_getScoreTitle'),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               const SizedBox(height: 4),
               Text(
-                'Take a 2-minute check to see how your liver, heart, '
-                'kidneys, lungs and blood sugar are doing.',
+                context.t('pf_getScoreBody'),
                 style: TextStyle(color: cs.onSurfaceVariant),
               ),
               const SizedBox(height: 12),
               FilledButton(
                 onPressed: onStartCheck,
-                child: const Text('Start my check'),
+                child: Text(context.t('pf_startMyCheck')),
               ),
             ],
           ),
@@ -506,7 +495,9 @@ class _ScoreCard extends StatelessWidget {
                     spacing: 8,
                     children: [
                       Text(
-                        entry.tier.isEmpty ? 'Health score' : entry.tier,
+                        entry.tier.isEmpty
+                            ? context.t('pf_healthScore')
+                            : tierText(context, entry.tier),
                         style: const TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.w700,
@@ -514,7 +505,9 @@ class _ScoreCard extends StatelessWidget {
                       ),
                       if (delta != null)
                         Text(
-                          '${delta! >= 0 ? '+' : ''}$delta since last check',
+                          context.tf('pf_sinceLastCheck', {
+                            'n': '${delta! >= 0 ? '+' : ''}$delta',
+                          }),
                           style: TextStyle(
                             color: delta! >= 0 ? kLow : kHigh,
                             fontWeight: FontWeight.w600,
@@ -523,7 +516,11 @@ class _ScoreCard extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    'Level $level · ${_coinsPerLevel - into} coins to level ${level + 1}',
+                    context.tf('pf_levelProgress', {
+                      'level': level,
+                      'n': _coinsPerLevel - into,
+                      'next': level + 1,
+                    }),
                     style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
                   ),
                   const SizedBox(height: 6),
@@ -538,7 +535,7 @@ class _ScoreCard extends StatelessWidget {
                     TextButton(
                       onPressed: onOpenLast,
                       style: TextButton.styleFrom(padding: EdgeInsets.zero),
-                      child: const Text('See my last results'),
+                      child: Text(context.t('pf_seeLastResults')),
                     ),
                 ],
               ),
@@ -563,7 +560,8 @@ class _ScoreChart extends StatelessWidget {
     return Card(
       margin: EdgeInsets.zero,
       child: Container(
-        height: 150,
+        // Bars (max 80) plus room for the two labels at the phone's text size.
+        height: 122 + MediaQuery.textScalerOf(context).scale(28),
         padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -575,11 +573,15 @@ class _ScoreChart extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
-                      Text(
-                        '${e.score}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: cs.onSurfaceVariant,
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${e.score}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: cs.onSurfaceVariant,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -593,11 +595,17 @@ class _ScoreChart extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Text(
-                        '${e.date.day}/${e.date.month}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          color: cs.onSurfaceVariant,
+                      // Scales down instead of wrapping when ten bars
+                      // share a narrow phone or the text is large.
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '${e.date.day}/${e.date.month}',
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: cs.onSurfaceVariant,
+                          ),
                         ),
                       ),
                     ],
@@ -642,14 +650,11 @@ class _EverydayList extends StatelessWidget {
         margin: EdgeInsets.zero,
         child: ListTile(
           leading: const Icon(Icons.history),
-          title: const Text('Nothing yet'),
-          subtitle: const Text(
-            'Check in on the Home page or take a health check. '
-            'Each day will appear here.',
-          ),
+          title: Text(context.t('pf_nothingYet')),
+          subtitle: Text(context.t('pf_nothingYetBody')),
           trailing: TextButton(
             onPressed: onStartCheck,
-            child: const Text('Start'),
+            child: Text(context.t('rewardsStart')),
           ),
         ),
       );
@@ -669,7 +674,7 @@ class _EverydayList extends StatelessWidget {
           ),
         if (keys.length > _maxDays)
           Text(
-            'Showing the last $_maxDays active days',
+            context.tf('pf_showingLastDays', {'n': _maxDays}),
             style: Theme.of(context).textTheme.bodySmall,
           ),
       ],
@@ -704,7 +709,7 @@ class _DayCard extends StatelessWidget {
             children: [
               Expanded(
                 child: Text(
-                  _dayLabel(day),
+                  _dayLabel(context, day),
                   style: const TextStyle(
                     fontWeight: FontWeight.w700,
                     fontSize: 15,
@@ -734,12 +739,16 @@ class _DayCard extends StatelessWidget {
                     ? Icons.check_circle
                     : Icons.radio_button_unchecked,
                 color: e?.checkedIn == true ? kLow : cs.outline,
-                text: e?.checkedIn == true ? 'Checked in' : 'No check-in',
+                text: context.t(
+                  e?.checkedIn == true ? 'pf_checkedIn' : 'pf_noCheckin',
+                ),
               ),
               _DayChip(
                 icon: Icons.today,
                 color: score == null ? cs.outline : _scoreColor(score, cs),
-                text: score == null ? 'No daily log' : 'Daily log $score/100',
+                text: score == null
+                    ? context.t('pf_noDailyLog')
+                    : context.tf('pf_dailyLogScore', {'n': score}),
               ),
             ],
           ),
@@ -804,8 +813,9 @@ class _HistoryRow extends StatelessWidget {
               (a.level == 'high' ? 0 : 1).compareTo(b.level == 'high' ? 0 : 1),
         );
       concern = worst.isEmpty
-          ? 'All organs looking good'
-          : '${worst.first.name}: ${levelText(worst.first.level).toLowerCase()}';
+          ? context.t('pf_allOrgansGood')
+          : '${organName(context, worst.first.key)}: '
+                '${levelText(worst.first.level, context).toLowerCase()}';
     }
     final color = _scoreColor(entry.score, cs);
 
@@ -837,10 +847,14 @@ class _HistoryRow extends StatelessWidget {
       ),
       contentPadding: EdgeInsets.zero,
       title: Text(
-        'Health check · ${entry.tier.isEmpty ? '${entry.score}/100' : entry.tier}',
+        context.tf('pf_healthCheckTitle', {
+          'tier': entry.tier.isEmpty
+              ? '${entry.score}/100'
+              : tierText(context, entry.tier),
+        }),
         style: const TextStyle(fontWeight: FontWeight.w600),
       ),
-      subtitle: Text([_time(entry.date), ?concern].join(' · ')),
+      subtitle: Text([_time(context, entry.date), ?concern].join(' · ')),
       trailing: result == null ? null : const Icon(Icons.chevron_right),
     );
   }
@@ -868,7 +882,6 @@ class _StreakCard extends StatelessWidget {
       for (var i = 6; i >= 0; i--)
         DateTime(today.year, today.month, today.day - i),
     ];
-    const weekdayLetters = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 
     return Card(
       margin: EdgeInsets.zero,
@@ -943,7 +956,7 @@ class _StreakCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        weekdayLetters[day.weekday - 1],
+                        context.t('pf_wdLetter${day.weekday}'),
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
@@ -952,7 +965,7 @@ class _StreakCard extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             Text(
-              'Check in on the Home page every day to keep your streak going.',
+              context.t('pf_streakHint'),
               style: Theme.of(context).textTheme.bodySmall,
             ),
           ],
@@ -962,14 +975,51 @@ class _StreakCard extends StatelessWidget {
   }
 }
 
-class _StatCard extends StatelessWidget {
+/// Two stat cards per row. Rows size to their content (no fixed aspect
+/// ratio), so cards never overflow on narrow phones or with large text;
+/// both cards in a row share the taller height.
+class StatGrid extends StatelessWidget {
+  final List<Widget> children;
+
+  const StatGrid({super.key, required this.children});
+
+  @override
+  Widget build(BuildContext context) {
+    const gap = 12.0;
+    return Column(
+      children: [
+        for (var i = 0; i < children.length; i += 2) ...[
+          if (i > 0) const SizedBox(height: gap),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: children[i]),
+                const SizedBox(width: gap),
+                Expanded(
+                  child: i + 1 < children.length
+                      ? children[i + 1]
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// One number on the Profile (coins, checks done, FIB-4, BMI).
+class StatCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String value;
   final String caption;
   final Color color;
 
-  const _StatCard({
+  const StatCard({
+    super.key,
     required this.icon,
     required this.label,
     required this.value,
@@ -999,13 +1049,18 @@ class _StatCard extends StatelessWidget {
                 ),
               ],
             ),
+            const SizedBox(height: 6),
             const Spacer(),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 26,
-                fontWeight: FontWeight.bold,
-                color: color,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                value,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
               ),
             ),
             Text(
@@ -1162,30 +1217,36 @@ class _WeeklyCard extends StatelessWidget {
         ],
       ),
     );
-    const weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return SurfaceCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(
-                context.t('weeklyTitle'),
-                style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 16,
-                ),
-              ),
-              const Spacer(),
-              if (change != null)
-                Text(
-                  '${change >= 0 ? '▲' : '▼'} ${change.abs()} ${context.t('weeklyVsLast')}',
-                  style: TextStyle(
+              Expanded(
+                child: Text(
+                  context.t('weeklyTitle'),
+                  style: const TextStyle(
                     fontWeight: FontWeight.w700,
-                    color: change >= 0 ? kLow : kHigh,
-                    fontSize: 12,
+                    fontSize: 16,
                   ),
                 ),
+              ),
+              if (change != null) ...[
+                const SizedBox(width: 8),
+                Flexible(
+                  child: Text(
+                    '${change >= 0 ? '▲' : '▼'} '
+                    '${context.tf('pf_vsLastWeek', {'n': change.abs()})}',
+                    textAlign: TextAlign.end,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w700,
+                      color: change >= 0 ? kLow : kHigh,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 12),
@@ -1198,7 +1259,9 @@ class _WeeklyCard extends StatelessWidget {
               ),
               stat('${s.daysLogged}/7', context.t('weeklyDaysLogged')),
               stat(
-                s.bestDay == null ? '—' : weekdays[s.bestDay!.weekday - 1],
+                s.bestDay == null
+                    ? '—'
+                    : context.t('pf_wd${s.bestDay!.weekday}'),
                 '${context.t('weeklyBest')}${s.bestScore == null ? '' : ' · ${s.bestScore}'}',
               ),
             ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'app_language.dart';
@@ -11,7 +12,10 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await OnboardingPrefs.init();
   if (isSupabaseConfigured) {
-    await Supabase.initialize(url: supabaseUrl, publishableKey: supabaseAnonKey);
+    await Supabase.initialize(
+      url: supabaseUrl,
+      publishableKey: supabaseAnonKey,
+    );
   }
   runApp(const LivrCheckApp());
 }
@@ -25,10 +29,13 @@ class LivrCheckApp extends StatelessWidget {
       title: 'LivrCheck',
       debugShowCheckedModeBanner: false,
       theme: buildAppTheme(),
+      scrollBehavior: const AppScrollBehavior(),
       // Above the Navigator, so every screen follows the selected language.
       builder: (context, child) =>
           LanguageScope(notifier: appLanguage, child: child!),
-      home: isSupabaseConfigured ? const AuthGate() : const _SetupNeededScreen(),
+      home: isSupabaseConfigured
+          ? const AuthGate()
+          : const _SetupNeededScreen(),
     );
   }
 }
@@ -39,26 +46,33 @@ class _SetupNeededScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Center(
-        child: Padding(
-          padding: EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.key, size: 48),
-              SizedBox(height: 12),
-              Text(
-                'Supabase is not configured',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Fill in env.json with your project URL and anon key, then run:\n'
-                'flutter run --dart-define-from-file=env.json',
-                textAlign: TextAlign.center,
-              ),
-            ],
+    // Dark status bar icons on the light background (no app bar here).
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.dark,
+      child: Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.key, size: 48),
+                const SizedBox(height: 12),
+                Text(
+                  context.t('er_notConfiguredTitle'),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '${context.t('er_notConfiguredBody')}\n'
+                  'flutter run --dart-define-from-file=env.json',
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ),
       ),

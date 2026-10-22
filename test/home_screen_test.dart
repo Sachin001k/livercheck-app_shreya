@@ -34,7 +34,7 @@ void main() {
     );
 
     expect(find.text('View details'), findsWidgets);
-    await tester.tap(find.text('Leafy greens'));
+    await tester.tap(find.text(tr(AppLanguage.en, 'hm_greensName')));
     // The home cards animate forever, so wait a fixed time instead of
     // pumpAndSettle.
     await tester.pump(const Duration(milliseconds: 500));
@@ -66,10 +66,13 @@ void main() {
     );
 
     for (final tip in foodTips) {
-      expect(tip.detail, isNotNull, reason: '${tip.name} has no details');
+      expect(tip.detail, isNotNull, reason: '${tip.nameKey} has no details');
       showFoodDetail(ctx, tip);
       await tester.pumpAndSettle();
-      expect(find.text(tip.name), findsOneWidget);
+      expect(
+        find.text(tr(AppLanguage.en, tip.nameKey)),
+        findsOneWidget,
+      );
       expect(find.text('Nutrition'), findsOneWidget);
       if (!tip.recommended) {
         await tester.scrollUntilVisible(
@@ -80,7 +83,7 @@ void main() {
         expect(
           find.text('Healthier swaps'),
           findsOneWidget,
-          reason: '${tip.name} should suggest swaps',
+          reason: '${tip.nameKey} should suggest swaps',
         );
       }
       Navigator.of(ctx).pop();

@@ -16,7 +16,8 @@ bool get isSupabaseConfigured =>
 /// Shown on the Settings screen. Keep in step with `version:` in pubspec.yaml.
 const String appVersion = '1.0.0';
 
-/// Where users send questions and data requests. TODO: real address.
+/// Where users send questions and data requests; also the privacy policy
+/// contact. TODO: real address (also in web/privacy.html and web/delete-account.html).
 const String supportEmail = 'support@livrcheck.example';
 
 /// Deep link Supabase redirects to after Google sign-in / email links on

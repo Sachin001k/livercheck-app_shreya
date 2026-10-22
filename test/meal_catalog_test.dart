@@ -19,6 +19,6 @@ void main() {
   test('every food has a unique id and positive portion text', () {
     final ids = mealFoods.map((f) => f.id).toSet();
     expect(ids.length, mealFoods.length);
-    expect(mealFoods.every((f) => f.portion.isNotEmpty && f.kcal >= 0), isTrue);
+    expect(mealFoods.every((f) => f.portionKey.isNotEmpty && f.kcal >= 0), isTrue);
   });
 }

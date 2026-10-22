@@ -27,15 +27,19 @@ class ProfileSetupScreen extends StatefulWidget {
 
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   late final _nameController = TextEditingController(
-    text: widget.initial?.fullName ??
+    text:
+        widget.initial?.fullName ??
         AuthService.currentUser?.userMetadata?['full_name'] as String?,
   );
-  late final _ageController =
-      TextEditingController(text: widget.initial?.age?.toString());
-  late final _heightController =
-      TextEditingController(text: _format(widget.initial?.heightCm));
-  late final _weightController =
-      TextEditingController(text: _format(widget.initial?.weightKg));
+  late final _ageController = TextEditingController(
+    text: widget.initial?.age?.toString(),
+  );
+  late final _heightController = TextEditingController(
+    text: _format(widget.initial?.heightCm),
+  );
+  late final _weightController = TextEditingController(
+    text: _format(widget.initial?.weightKg),
+  );
   late String? _gender = widget.initial?.gender;
 
   bool _busy = false;
@@ -87,7 +91,13 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (_isEditing) Navigator.of(context).pop();
     } catch (e) {
       if (mounted) {
-        setState(() => _error = AuthService.describeError(e, context.t('genericError')));
+        setState(
+          () => _error = AuthService.describeErrorFor(
+            context,
+            e,
+            context.t('genericError'),
+          ),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -157,8 +167,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     Expanded(
                       child: TextField(
                         controller: _heightController,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         decoration: InputDecoration(
                           labelText: context.t('heightLabel'),
                           border: const OutlineInputBorder(),
@@ -169,8 +180,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     Expanded(
                       child: TextField(
                         controller: _weightController,
-                        keyboardType:
-                            const TextInputType.numberWithOptions(decimal: true),
+                        keyboardType: const TextInputType.numberWithOptions(
+                          decimal: true,
+                        ),
                         decoration: InputDecoration(
                           labelText: context.t('weightLabel'),
                           border: const OutlineInputBorder(),
@@ -195,7 +207,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white),
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
                         )
                       : Text(context.t(_isEditing ? 'save' : 'continueButton')),
                 ),

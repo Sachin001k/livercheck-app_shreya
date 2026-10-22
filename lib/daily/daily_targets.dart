@@ -16,7 +16,8 @@ class DailyTargets {
   final double sleepMin, sleepMax;
   final int fruitVeg;
 
-  /// Why the calorie target is what it is, e.g. "includes a small deficit".
+  /// Translation key saying why the calorie target is what it is
+  /// (`dl_keepWeightNote` or `dl_deficitNote`).
   final String caloriesNote;
 
   const DailyTargets({
@@ -51,10 +52,10 @@ DailyTargets targetsFor({
   final bmr = 10 * w + 6.25 * h - 5 * a + (male ? 5 : -161);
   var kcal = bmr * 1.375;
   final bmi = w / math.pow(h / 100, 2);
-  var note = 'To keep your current weight';
+  var note = 'dl_keepWeightNote';
   if (bmi >= 23) {
     kcal -= 500;
-    note = 'Includes a small deficit to lose about 0.5 kg a week';
+    note = 'dl_deficitNote';
   }
   final minKcal = male ? 1500 : 1200;
   final calories = ((math.max(kcal, minKcal) / 50).round() * 50);

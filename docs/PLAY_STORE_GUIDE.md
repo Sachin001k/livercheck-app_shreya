@@ -54,15 +54,40 @@ project.
 
 | Task | Status | Notes |
 |---|---|---|
-| Unique package name | ⬜ | Today it is `com.example.livrcheck_app`. Google rejects `com.example`. Pick e.g. `in.livrcheck.app` — **it can never change after the first upload** |
+| Unique package name | ✅ | **`in.livrcheck.app`** (set 22 Oct 2026 in `android/app/build.gradle.kts`, `MainActivity.kt`, iOS bundle id). **Never change it after the first upload** |
 | App name | ✅ | "LivrCheck" (AndroidManifest) |
-| App icon + splash | ⬜ | 512×512 icon; generate all sizes with `flutter_launcher_icons` |
-| Upload signing key | ⬜ | Create a keystore once (`keytool`), keep it **and its passwords** safe in 2 places. Losing it means you cannot update the app |
-| Play App Signing | ⬜ | Accept it at first upload (Google keeps the final signing key) |
-| Release build | ⬜ | `flutter build appbundle --release --dart-define-from-file=env.json` → `build/app/outputs/bundle/release/app-release.aab` |
-| Version number | ✅ | `version: 1.0.0+1` in pubspec.yaml — **increase the `+N` number for every upload** |
-| Target API level | ✅ | Flutter's default meets Google's current target; Play Console warns if not |
-| Supabase redirect | ✅ | `io.livrcheck.app://login-callback` is configured for email links |
+| Version | ✅ | `versionName = "1.0.0"` in `build.gradle.kts`; `versionCode` = the `+N` in pubspec.yaml `version: 1.0.0+1`. **Raise `+N` for every upload**; raise `versionName` (and `appVersion` in `lib/config.dart`) for each public release |
+| Target API level | ✅ | Flutter 3.44 targets **API 36 (Android 16)** — required for new apps and updates from 31 Aug 2026 (checked Oct 2026). min SDK 24 |
+| Release signing | 🛠️ ready · 👤 create key | `build.gradle.kts` reads `android/key.properties` (git-ignored). Steps below |
+| Privacy policy page | ✅ draft | `web/privacy.html` → **https://livrcheck.vercel.app/privacy.html** after `./scripts/deploy_web.sh` |
+| Account-deletion page | ✅ draft | `web/delete-account.html` → **https://livrcheck.vercel.app/delete-account.html** |
+| Support email | ⬜ 👤 | Replace `support@livrcheck.example` in `lib/config.dart`, `web/privacy.html`, `web/delete-account.html` |
+| App icon | ⬜ 👤 | Need a 1024×1024 PNG logo. Then add `flutter_launcher_icons` and generate all sizes |
+| Supabase redirect | ✅ | `io.livrcheck.app://login-callback` (separate from the package name — fine to keep) |
+
+### Create the upload key (once) 👤
+
+Run from the project folder. It asks for a password — **write it down**:
+
+```bash
+keytool -genkey -v -keystore ../livrcheck-upload-keystore.jks \
+  -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+This puts the key **outside** the project folder (it must never go to GitHub).
+Then copy `android/key.properties.example` to `android/key.properties` and
+fill in the password(s). Back up the `.jks` file **and** the passwords in two
+safe places (e.g. password manager + a USB drive). With Play App Signing,
+a lost upload key can be reset by Google support, but it takes days.
+
+### Build the file you upload
+
+```bash
+flutter build appbundle --release --dart-define-from-file=env.json
+```
+
+Output: `build/app/outputs/bundle/release/app-release.aab`.
+
 
 ---
 

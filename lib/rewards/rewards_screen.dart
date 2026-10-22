@@ -15,22 +15,15 @@ import 'special_survey_screen.dart';
 
 const int coinsPerLevel = 100;
 
-const _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
+/// "5 Oct" style date in the current language.
+String _shortDate(BuildContext context, DateTime d) =>
+    '${d.day} ${monthShort(context, d.month)}';
 
-String _shortDate(DateTime d) => '${d.day} ${_months[d.month - 1]}';
+/// Translated name of a coin source; unknown reasons show the code.
+String _reasonName(BuildContext context, String reason) {
+  final key = reasonLabels[reason]?.$2;
+  return key == null ? reason : context.t(key);
+}
 
 class _Data {
   final RewardsData rewards;
@@ -126,7 +119,7 @@ class _RewardsScreenState extends State<RewardsScreen> {
             _title(context.t('rewardsSpecialSurveys')),
             _SurveysList(surveys: data.rewards.surveys, onOpen: _openSurvey),
             _title(context.t('rewardsBadges')),
-            _BadgesGrid(badges: data.badges),
+            BadgesGrid(badges: data.badges),
             _title(context.t('rewardsRedeem')),
             const _RedeemPlaceholder(),
             _title(context.t('rewardsHistory')),
@@ -158,8 +151,10 @@ class _BalanceCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.amber.shade700, Colors.orange.shade400],
+        // Deep amber/brown, dark enough for white text (the lighter
+        // amber/orange failed contrast).
+        gradient: const LinearGradient(
+          colors: [Color(0xFF9A5B00), Color(0xFFB45309)],
         ),
         borderRadius: BorderRadius.circular(20),
       ),
@@ -174,7 +169,7 @@ class _BalanceCard extends StatelessWidget {
                 Text(
                   context.t('rewardsYourCoins'),
                   style: const TextStyle(
-                    color: Colors.white70,
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -194,7 +189,10 @@ class _BalanceCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  '${context.t('rewardsLevel')} $level · ${coinsPerLevel - into} ${context.t('rewardsToNextLevel')}',
+                  context.tf('rw_levelLine', {
+                    'level': level,
+                    'n': coinsPerLevel - into,
+                  }),
                   style: const TextStyle(color: Colors.white, fontSize: 13),
                 ),
                 const SizedBox(height: 6),
@@ -239,11 +237,13 @@ class _HowToEarn extends StatelessWidget {
                 style: const TextStyle(fontSize: 24),
               ),
               title: Text(
-                reasonLabels[r.reason]?.$2 ?? r.reason,
+                _reasonName(context, r.reason),
                 style: const TextStyle(fontWeight: FontWeight.w600),
               ),
               subtitle: Text(
-                r.description,
+                ruleDescriptionKeys[r.reason] != null
+                    ? context.t(ruleDescriptionKeys[r.reason]!)
+                    : r.description,
                 style: TextStyle(color: cs.onSurfaceVariant, fontSize: 12),
               ),
               trailing: Text(
@@ -304,7 +304,7 @@ class _SurveysList extends StatelessWidget {
                         s.completed
                             ? context.t('rewardsCompleted')
                             : '🪙 ${s.rewardCoins}'
-                                  '${s.endsAt == null ? '' : ' · ${context.t('rewardsEnds')} ${_shortDate(s.endsAt!)}'}',
+                                  '${s.endsAt == null ? '' : ' · ${context.t('rewardsEnds')} ${_shortDate(context, s.endsAt!)}'}',
                         style: TextStyle(
                           fontSize: 12,
                           color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -326,10 +326,11 @@ class _SurveysList extends StatelessWidget {
   }
 }
 
-class _BadgesGrid extends StatelessWidget {
+/// Badge tiles, 3 per row on phones (5 on wide screens).
+class BadgesGrid extends StatelessWidget {
   final List<Achievement> badges;
 
-  const _BadgesGrid({required this.badges});
+  const BadgesGrid({super.key, required this.badges});
 
   @override
   Widget build(BuildContext context) {
@@ -339,7 +340,10 @@ class _BadgesGrid extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$unlocked / ${badges.length} unlocked',
+            context.tf('rw_badgesUnlocked', {
+              'n': unlocked,
+              'total': badges.length,
+            }),
             style: TextStyle(
               fontSize: 12,
               color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -349,17 +353,31 @@ class _BadgesGrid extends StatelessWidget {
           LayoutBuilder(
             builder: (context, c) {
               final columns = c.maxWidth > 480 ? 5 : 3;
-              return GridView.count(
-                crossAxisCount: columns,
+              // Tile height from its content at the phone's text size (a
+              // fixed aspect ratio overflowed above ~1.1× text): padding,
+              // emoji, gap, one-line label, a two-line hint and some slack
+              // (1.45 = the Material 3 body line height).
+              final ts = MediaQuery.textScalerOf(context);
+              final tileHeight =
+                  16 +
+                  ts.scale(28) * 1.45 +
+                  6 +
+                  ts.scale(11) * 1.45 +
+                  ts.scale(9) * 1.45 * 2 +
+                  6;
+              return GridView(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                mainAxisSpacing: 10,
-                crossAxisSpacing: 10,
-                childAspectRatio: 0.95,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisSpacing: 10,
+                  crossAxisSpacing: 10,
+                  mainAxisExtent: tileHeight,
+                ),
                 children: [
                   for (final b in badges)
                     Tooltip(
-                      message: b.unlocked ? b.label : b.hint,
+                      message: context.t(b.unlocked ? b.labelKey : b.hintKey),
                       child: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -378,7 +396,7 @@ class _BadgesGrid extends StatelessWidget {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              b.label,
+                              context.t(b.labelKey),
                               textAlign: TextAlign.center,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -390,7 +408,7 @@ class _BadgesGrid extends StatelessWidget {
                             ),
                             if (!b.unlocked)
                               Text(
-                                b.hint,
+                                context.t(b.hintKey),
                                 textAlign: TextAlign.center,
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -429,13 +447,17 @@ class _RedeemPlaceholder extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                // Wrap so the "Coming soon" pill drops to the next line
+                // instead of overflowing with long translations.
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
                     Text(
                       context.t('rewardsRedeem'),
                       style: const TextStyle(fontWeight: FontWeight.w700),
                     ),
-                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 8,
@@ -493,8 +515,8 @@ class _CoinHistory extends StatelessWidget {
                 reasonLabels[e.reason]?.$1 ?? '🪙',
                 style: const TextStyle(fontSize: 20),
               ),
-              title: Text(reasonLabels[e.reason]?.$2 ?? e.reason),
-              subtitle: Text(_shortDate(e.createdAt)),
+              title: Text(_reasonName(context, e.reason)),
+              subtitle: Text(_shortDate(context, e.createdAt)),
               trailing: Text(
                 '+${e.amount}',
                 style: TextStyle(

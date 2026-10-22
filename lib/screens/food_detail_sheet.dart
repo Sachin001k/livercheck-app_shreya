@@ -73,7 +73,7 @@ class _FoodDetailBody extends StatelessWidget {
             ),
             const SizedBox(height: 16),
           ],
-          _PrecautionsCard(precautions: detail.precautions),
+          _PrecautionsCard(precautionKeys: detail.precautionKeys),
           const SizedBox(height: 16),
           Text(
             context.t('sampleContentNote'),
@@ -112,7 +112,7 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                tip.name,
+                context.t(tip.nameKey),
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
@@ -123,7 +123,7 @@ class _Header extends StatelessWidget {
                 color: color,
               ),
               const SizedBox(height: 8),
-              Text(tip.why),
+              Text(context.t(tip.whyKey)),
             ],
           ),
         ),
@@ -239,7 +239,7 @@ class _NutritionCard extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  '${context.t('perServing')} ${detail.serving}',
+                  '${context.t('perServing')} ${context.t(detail.servingKey)}',
                   style: Theme.of(context).textTheme.bodySmall,
                 ),
               ),
@@ -273,7 +273,7 @@ class _NutritionCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            n.amount,
+                            n.amount ?? context.t(n.amountKey!),
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
@@ -281,7 +281,7 @@ class _NutritionCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            n.name,
+                            context.t(n.nameKey),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -343,17 +343,17 @@ class _IntakeCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '${context.t(_labelKey[guide.group]!)} · ${guide.ages}',
+                          '${context.t(_labelKey[guide.group]!)} · ${context.t(guide.agesKey)}',
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                         Text(
-                          guide.amount,
+                          context.t(guide.amountKey),
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        if (guide.note != null) ...[
+                        if (guide.noteKey != null) ...[
                           const SizedBox(height: 2),
                           Text(
-                            guide.note!,
+                            context.t(guide.noteKey!),
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ],
@@ -410,7 +410,7 @@ class _PointsCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          point.title,
+                          context.t(point.titleKey),
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: color.shade900,
@@ -418,7 +418,7 @@ class _PointsCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          point.body,
+                          context.t(point.bodyKey),
                           style: Theme.of(context).textTheme.bodySmall,
                         ),
                       ],
@@ -434,9 +434,9 @@ class _PointsCard extends StatelessWidget {
 }
 
 class _PrecautionsCard extends StatelessWidget {
-  final List<String> precautions;
+  final List<String> precautionKeys;
 
-  const _PrecautionsCard({required this.precautions});
+  const _PrecautionsCard({required this.precautionKeys});
 
   @override
   Widget build(BuildContext context) {
@@ -446,7 +446,7 @@ class _PrecautionsCard extends StatelessWidget {
       color: Colors.indigo,
       child: Column(
         children: [
-          for (final p in precautions)
+          for (final p in precautionKeys)
             Padding(
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(
@@ -461,7 +461,7 @@ class _PrecautionsCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 10),
-                  Expanded(child: Text(p)),
+                  Expanded(child: Text(context.t(p))),
                 ],
               ),
             ),

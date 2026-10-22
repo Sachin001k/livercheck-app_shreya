@@ -39,7 +39,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
       setState(() {
         _saving = false;
         _error =
-            '${context.t('consentSaveError')} ${AuthService.describeError(e, '')}';
+            '${context.t('consentSaveError')} ${AuthService.describeErrorFor(context, e, '')}';
       });
     }
   }
@@ -147,11 +147,19 @@ class _ConsentScreenState extends State<ConsentScreen> {
                   Text(_error!, style: const TextStyle(color: kHigh)),
                 ],
                 const SizedBox(height: 20),
-                SizedBox(
-                  height: 56,
+                // Min height (not fixed) so a wrapped label isn't clipped.
+                ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: 56),
                   child: FilledButton(
                     onPressed: _allTicked && !_saving ? _agree : null,
-                    style: FilledButton.styleFrom(backgroundColor: tealDark),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: tealDark,
+                      minimumSize: const Size.fromHeight(56),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
+                    ),
                     child: _saving
                         ? const SizedBox(
                             width: 22,
@@ -163,6 +171,7 @@ class _ConsentScreenState extends State<ConsentScreen> {
                           )
                         : Text(
                             context.t('consentAgree'),
+                            textAlign: TextAlign.center,
                             style: const TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,

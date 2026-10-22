@@ -1,22 +1,8 @@
 import 'package:flutter/material.dart';
+import '../app_language.dart';
 import 'assess.dart';
 import 'body_map.dart';
 import 'health_ui.dart';
-
-const _months = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-];
 
 class ResultsScreen extends StatefulWidget {
   final AssessmentResult result;
@@ -65,10 +51,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
   }
 
   static const _tabs = {
-    'eatMore': 'Eat more',
-    'eatLess': 'Eat less',
-    'move': 'Exercise',
-    'habits': 'Habits',
+    'eatMore': 'sv_tabEatMore',
+    'eatLess': 'sv_tabEatLess',
+    'move': 'sv_tabExercise',
+    'habits': 'sv_tabHabits',
   };
 
   @override
@@ -110,8 +96,10 @@ class _ResultsScreenState extends State<ResultsScreen> {
       appBar: AppBar(
         title: Text(
           taken == null
-              ? 'Your results'
-              : 'Check on ${taken.day} ${_months[taken.month - 1]} ${taken.year}',
+              ? context.t('sv_yourResults')
+              : context.tf('sv_checkOnDate', {
+                  'date': shortDate(context, taken),
+                }),
         ),
       ),
       body: SafeArea(
@@ -158,7 +146,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'of 100',
+                                    context.t('sv_ofHundred'),
                                     style: TextStyle(
                                       fontSize: 12,
                                       color: cs.onSurfaceVariant,
@@ -176,13 +164,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              r.tier,
+                              tierText(context, r.tier),
                               style: t.headlineSmall?.copyWith(
                                 fontWeight: FontWeight.w800,
                               ),
                             ),
                             Text(
-                              'Your health score. BMI ${r.bmi.toStringAsFixed(1)}${r.waistEstimated ? ', waist estimated' : ''}.',
+                              context.tf(
+                                r.waistEstimated
+                                    ? 'sv_scoreBmiWaistEst'
+                                    : 'sv_scoreBmi',
+                                {'bmi': r.bmi.toStringAsFixed(1)},
+                              ),
                               style: TextStyle(color: cs.onSurfaceVariant),
                             ),
                           ],
@@ -202,18 +195,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         left: BorderSide(color: kHigh, width: 5),
                       ),
                     ),
-                    child: const Text.rich(
+                    child: Text.rich(
                       TextSpan(
                         children: [
                           TextSpan(
-                            text:
-                                'Please see a doctor in the next few weeks.\n',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                            text: '${context.t('sv_seeDoctorTitle')}\n',
+                            style: const TextStyle(fontWeight: FontWeight.w700),
                           ),
-                          TextSpan(
-                            text:
-                                'One or more organs show high risk. Take the tests listed below with you.',
-                          ),
+                          TextSpan(text: context.t('sv_seeDoctorBody')),
                         ],
                       ),
                     ),
@@ -226,9 +215,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                       color: cs.secondaryContainer,
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Text(n),
+                    child: Text(trText(context, n)),
                   ),
-                section('Tap an organ'),
+                section(context.t('sv_tapAnOrgan')),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
@@ -239,7 +228,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           radius: 6,
                           backgroundColor: levelColor(e.value.level),
                         ),
-                        label: Text(e.value.name.split(' ').first),
+                        label: Text(organName(context, e.key, short: true)),
                         selected: e.key == _sel,
                         onSelected: (_) => setState(() => _sel = e.key),
                       ),
@@ -265,7 +254,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              o.name,
+                              trText(context, o.name),
                               style: const TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
@@ -278,11 +267,14 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: levelColor(o.level),
+                                // kMod is too light behind white text.
+                                color: o.level == 'mod'
+                                    ? kModDark
+                                    : levelColor(o.level),
                                 borderRadius: BorderRadius.circular(99),
                               ),
                               child: Text(
-                                levelText(o.level),
+                                levelText(o.level, context),
                                 style: const TextStyle(
                                   color: Colors.white,
                                   fontWeight: FontWeight.w700,
@@ -292,7 +284,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              o.does,
+                              trText(context, o.does),
                               style: TextStyle(
                                 fontSize: 14,
                                 color: cs.onSurfaceVariant,
@@ -308,7 +300,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                     const Text('•  '),
                                     Expanded(
                                       child: Text(
-                                        reason,
+                                        trText(context, reason),
                                         style: const TextStyle(fontSize: 15),
                                       ),
                                     ),
@@ -317,7 +309,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               ),
                             const SizedBox(height: 6),
                             Text(
-                              '${o.confidence}${o.extra != null ? '. ${o.extra}.' : ''}',
+                              '${trText(context, o.confidence)}${o.extra != null ? '. ${trText(context, o.extra!)}.' : ''}',
                               style: TextStyle(
                                 fontSize: 13,
                                 color: cs.onSurfaceVariant,
@@ -330,23 +322,24 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                 ),
                 if (r.tests.isNotEmpty) ...[
-                  section('Tests to ask your doctor for'),
+                  section(context.t('sv_testsToAsk')),
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
                     children: [
-                      for (final tst in r.tests) Chip(label: Text(tst)),
+                      for (final tst in r.tests)
+                        Chip(label: Text(trText(context, tst))),
                     ],
                   ),
                 ],
-                section('Your plan'),
+                section(context.t('sv_yourPlan')),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
                     for (final e in _tabs.entries)
                       ChoiceChip(
-                        label: Text(e.value),
+                        label: Text(context.t(e.value)),
                         selected: _tab == e.key,
                         onSelected: (_) => setState(() => _tab = e.key),
                       ),
@@ -367,13 +360,13 @@ class _ResultsScreenState extends State<ResultsScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                p.title,
+                                trText(context, p.title),
                                 style: const TextStyle(
                                   fontWeight: FontWeight.w700,
                                 ),
                               ),
                               Text(
-                                p.sub,
+                                trText(context, p.sub),
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: cs.onSurfaceVariant,
@@ -388,7 +381,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                 const SizedBox(height: 20),
                 if (widget.onTrackHabits != null) ...[
                   BigButton(
-                    label: 'Track my habits',
+                    label: context.t('sv_trackHabits'),
                     onPressed: () {
                       Navigator.of(context).pop();
                       widget.onTrackHabits!();
@@ -396,19 +389,19 @@ class _ResultsScreenState extends State<ResultsScreen> {
                   ),
                   const SizedBox(height: 10),
                   BigButton(
-                    label: 'Take the check again',
+                    label: context.t('sv_takeAgain'),
                     outlined: true,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ] else
                   BigButton(
-                    label: 'Close',
+                    label: context.t('close'),
                     outlined: true,
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 const SizedBox(height: 20),
                 Text(
-                  kDisclaimer,
+                  context.t(kDisclaimer),
                   style: t.bodySmall?.copyWith(color: cs.onSurfaceVariant),
                 ),
               ],
@@ -449,7 +442,9 @@ class _SaveBanner extends StatelessWidget {
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              ok ? 'Saved to your profile' : 'Not saved: $error',
+              ok
+                  ? context.t('sv_savedToProfile')
+                  : context.tf('sv_notSaved', {'error': error}),
               style: TextStyle(color: color, fontWeight: FontWeight.w600),
             ),
           ),
@@ -463,7 +458,10 @@ class _SaveBanner extends StatelessWidget {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     ),
                   )
-                : TextButton(onPressed: onRetry, child: const Text('Retry')),
+                : TextButton(
+                    onPressed: onRetry,
+                    child: Text(context.t('retry')),
+                  ),
         ],
       ),
     );

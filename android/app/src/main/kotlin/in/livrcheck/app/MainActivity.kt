@@ -1,4 +1,4 @@
-package com.example.livrcheck_app
+package `in`.livrcheck.app
 
 import io.flutter.embedding.android.FlutterActivity
 

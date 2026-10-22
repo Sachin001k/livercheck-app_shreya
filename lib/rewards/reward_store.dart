@@ -87,7 +87,9 @@ class RewardsData {
       surveys.where((s) => !s.completed).toList();
 }
 
-/// Fallback rules shown if `reward_rules` can't be read.
+/// Fallback rules shown if `reward_rules` can't be read. The description
+/// here is English; the screen shows [ruleDescriptionKeys] instead when
+/// the reason is known.
 const defaultRules = [
   RewardRule(
     'checkin',
@@ -107,12 +109,22 @@ const defaultRules = [
   RewardRule('special_survey', 0, 'Completed a special survey'),
 ];
 
-/// Friendly name and emoji for each coin source.
+/// Emoji and translation key of the name of each coin source. The reason
+/// codes are stored in the database, so they never change.
 const reasonLabels = {
-  'checkin': ('👋', 'Daily check-in'),
-  'daily_log': ('📝', 'Daily log'),
-  'daily_bonus': ('🎯', '90+ day bonus'),
-  'special_survey': ('📣', 'Special survey'),
+  'checkin': ('👋', 'rw_reasonCheckin'),
+  'daily_log': ('📝', 'rw_reasonDailyLog'),
+  'daily_bonus': ('🎯', 'rw_reasonDailyBonus'),
+  'special_survey': ('📣', 'rw_reasonSpecialSurvey'),
+};
+
+/// Translation keys of the "how to earn" text for each known reason
+/// (used instead of the English `reward_rules.description`).
+const ruleDescriptionKeys = {
+  'checkin': 'rw_ruleCheckin',
+  'daily_log': 'rw_ruleDailyLog',
+  'daily_bonus': 'rw_ruleDailyBonus',
+  'special_survey': 'rw_ruleSpecialSurvey',
 };
 
 class RewardStore {

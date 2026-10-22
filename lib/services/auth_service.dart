@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../app_language.dart';
 import '../config.dart';
 
 /// Thin wrapper around Supabase Auth, so screens never talk to Supabase
@@ -16,7 +18,8 @@ class AuthService {
 
   /// Where Supabase sends the user back after Google sign-in or an email
   /// link: the current site on web, the app's deep link on mobile.
-  static String get _redirectUrl => kIsWeb ? Uri.base.origin : mobileAuthRedirect;
+  static String get _redirectUrl =>
+      kIsWeb ? Uri.base.origin : mobileAuthRedirect;
 
   static Future<AuthResponse> signInWithEmail({
     required String email,
@@ -59,8 +62,9 @@ class AuthService {
     return _auth.signInWithOAuth(
       OAuthProvider.google,
       redirectTo: _redirectUrl,
-      authScreenLaunchMode:
-          kIsWeb ? LaunchMode.platformDefault : LaunchMode.externalApplication,
+      authScreenLaunchMode: kIsWeb
+          ? LaunchMode.platformDefault
+          : LaunchMode.externalApplication,
     );
   }
 
@@ -90,8 +94,66 @@ class AuthService {
     debugPrint('LivrCheck error: ${error.runtimeType}: $error');
     if (error is AuthException) return error.message;
     if (error is PostgrestException) {
-      return kDebugMode ? '${error.message} (code ${error.code})' : error.message;
+      return kDebugMode
+          ? '${error.message} (code ${error.code})'
+          : error.message;
     }
     return kDebugMode ? '$fallback\n$error' : fallback;
+  }
+
+  /// Translation key for errors we can explain in plain words (Supabase
+  /// sends its messages in English), or null if the error is unknown.
+  static String? errorKey(Object error) {
+    final text =
+        (error is AuthException
+                ? error.message
+                : error is PostgrestException
+                ? error.message
+                : error.toString())
+            .toLowerCase();
+    bool has(String part) => text.contains(part);
+    if (has('rate limit')) return 'authRateLimited';
+    if (has('already registered')) return 'authAlreadyRegistered';
+    if (has('invalid login credentials')) return 'authInvalidLogin';
+    if (has('email not confirmed')) return 'authEmailNotConfirmed';
+    if (has('different from the old password')) return 'au_samePassword';
+    if (has('password should be') || has('weak password')) {
+      return 'au_weakPassword';
+    }
+    if (has('unable to validate email') || has('invalid email')) {
+      return 'emailRequiredError';
+    }
+    if (has('signups not allowed') || has('signup is disabled')) {
+      return 'au_signupDisabled';
+    }
+    if (has('token has expired') || has('otp expired') || has('otp_expired')) {
+      return 'au_codeExpired';
+    }
+    if (has('user not found')) return 'au_userNotFound';
+    if (has('not signed in') ||
+        has('jwt expired') ||
+        has('auth session missing')) {
+      return 'au_sessionExpired';
+    }
+    if (has('failed to fetch') ||
+        has('socketexception') ||
+        has('clientexception') ||
+        has('network')) {
+      return 'au_noInternet';
+    }
+    return null;
+  }
+
+  /// [describeError] in the current language: known errors become a
+  /// translated plain-language message, others fall back to the raw text.
+  static String describeErrorFor(
+    BuildContext context,
+    Object error,
+    String fallback,
+  ) {
+    final key = errorKey(error);
+    if (key == null) return describeError(error, fallback);
+    debugPrint('LivrCheck error: ${error.runtimeType}: $error');
+    return context.t(key);
   }
 }

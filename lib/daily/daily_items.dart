@@ -1,33 +1,55 @@
 /// The items in the daily check-in log, shared by every screen that shows it.
 library;
 
+import '../translations.dart';
 import 'daily_targets.dart';
 
+/// Text for [key] in [lang] with `{name}` placeholders filled from [args].
+String trf(AppLanguage lang, String key, [Map<String, Object?> args = const {}]) {
+  var text = tr(lang, key);
+  args.forEach((name, value) => text = text.replaceAll('{$name}', '$value'));
+  return text;
+}
+
 class DailyItem {
-  final String key, emoji, title, unit;
+  /// Item id (stable; used in saved data and scoring).
+  final String key;
+  final String emoji;
+
+  /// Translation keys (see `lib/translations/en.dart`).
+  final String titleKey, unitKey, goalKey;
+  final String? hintKey;
   final double min, max, step;
 
   /// Size of one tap on the − / + buttons.
   final double tapStep;
-  final String Function(DailyTargets t) goalText;
+
+  /// Values for the `{placeholders}` in [goalKey].
+  final Map<String, Object> Function(DailyTargets t) goalArgs;
 
   /// Target the progress bar fills towards (null = lower is better).
   final double? Function(DailyTargets t) goal;
-  final String? hint;
 
   const DailyItem({
     required this.key,
     required this.emoji,
-    required this.title,
-    required this.unit,
+    required this.titleKey,
+    required this.unitKey,
     required this.min,
     required this.max,
     required this.step,
     required this.tapStep,
-    required this.goalText,
+    required this.goalKey,
+    required this.goalArgs,
     required this.goal,
-    this.hint,
+    this.hintKey,
   });
+
+  String title(AppLanguage lang) => tr(lang, titleKey);
+  String unit(AppLanguage lang) => tr(lang, unitKey);
+  String? hint(AppLanguage lang) => hintKey == null ? null : tr(lang, hintKey!);
+  String goalText(AppLanguage lang, DailyTargets t) =>
+      trf(lang, goalKey, goalArgs(t));
 
   String format(double v) => step < 1
       ? v.toStringAsFixed(2).replaceAll(RegExp(r'\.?0+$'), '')
@@ -48,92 +70,99 @@ final List<DailyItem> dailyItems = [
   DailyItem(
     key: 'water',
     emoji: '💧',
-    title: 'Water',
-    unit: 'L',
+    titleKey: 'dl_water',
+    unitKey: 'dl_unitLitre',
     min: 0,
     max: 5,
     step: 0.25,
     tapStep: 0.25,
-    goalText: (t) => 'Goal ${(t.waterMl / 1000).toStringAsFixed(1)} L',
+    goalKey: 'dl_goalWater',
+    goalArgs: (t) => {'n': (t.waterMl / 1000).toStringAsFixed(1)},
     goal: (t) => t.waterMl / 1000,
-    hint: '1 glass ≈ 250 ml · 1 bottle ≈ 1 L',
+    hintKey: 'dl_hintWater',
   ),
   DailyItem(
     key: 'calories',
     emoji: '🍽️',
-    title: 'Food eaten',
-    unit: 'kcal',
+    titleKey: 'dl_foodEaten',
+    unitKey: 'dl_unitKcal',
     min: 0,
     max: 4000,
     step: 50,
     tapStep: 100,
-    goalText: (t) => 'Goal about ${t.calories} kcal',
+    goalKey: 'dl_goalCalories',
+    goalArgs: (t) => {'n': t.calories},
     goal: (t) => t.calories.toDouble(),
-    hint: 'Thali ≈ 700 · roti ≈ 100 · samosa ≈ 250',
+    hintKey: 'dl_hintCalories',
   ),
   DailyItem(
     key: 'exercise',
     emoji: '🏃',
-    title: 'Exercise',
-    unit: 'min',
+    titleKey: 'dl_exercise',
+    unitKey: 'dl_unitMin',
     min: 0,
     max: 120,
     step: 5,
     tapStep: 5,
-    goalText: (t) => 'Goal ${t.exerciseMin} min',
+    goalKey: 'dl_goalExercise',
+    goalArgs: (t) => {'n': t.exerciseMin},
     goal: (t) => t.exerciseMin.toDouble(),
-    hint: 'Brisk walk, yoga, cycling, sports, gym',
+    hintKey: 'dl_hintExercise',
   ),
   DailyItem(
     key: 'steps',
     emoji: '👣',
-    title: 'Steps',
-    unit: 'steps',
+    titleKey: 'dl_steps',
+    unitKey: 'dl_unitSteps',
     min: 0,
     max: 20000,
     step: 500,
     tapStep: 500,
-    goalText: (t) => 'Goal ${t.steps} steps',
+    goalKey: 'dl_goalSteps',
+    goalArgs: (t) => {'n': t.steps},
     goal: (t) => t.steps.toDouble(),
-    hint: "See your phone's health app",
+    hintKey: 'dl_hintSteps',
   ),
   DailyItem(
     key: 'sleep',
     emoji: '😴',
-    title: 'Sleep',
-    unit: 'hours',
+    titleKey: 'dl_sleep',
+    unitKey: 'dl_unitHours',
     min: 3,
     max: 12,
     step: 0.5,
     tapStep: 0.5,
-    goalText: (t) => 'Goal ${t.sleepMin.round()}–${t.sleepMax.round()} hours',
+    goalKey: 'dl_goalSleep',
+    goalArgs: (t) => {'min': t.sleepMin.round(), 'max': t.sleepMax.round()},
     goal: (t) => t.sleepMin,
   ),
   DailyItem(
     key: 'fruitVeg',
     emoji: '🥗',
-    title: 'Fruit & veg',
-    unit: 'servings',
+    titleKey: 'dl_fruitVeg',
+    unitKey: 'dl_unitServings',
     min: 0,
     max: 10,
     step: 1,
     tapStep: 1,
-    goalText: (t) => 'Goal ${t.fruitVeg} servings',
+    goalKey: 'dl_goalFruitVeg',
+    goalArgs: (t) => {'n': t.fruitVeg},
     goal: (t) => t.fruitVeg.toDouble(),
-    hint: '1 katori sabzi, 1 fruit or 1 bowl salad',
+    hintKey: 'dl_hintFruitVeg',
   ),
   DailyItem(
     key: 'sugar',
     emoji: '🍬',
-    title: 'Sweets & sugary drinks',
-    unit: 'items',
+    titleKey: 'dl_sweets',
+    unitKey: 'dl_unitItems',
     min: 0,
     max: 6,
     step: 1,
     tapStep: 1,
-    goalText: (_) => 'Goal 0',
+    goalKey: 'dl_goalSweets',
+    goalArgs: (_) => const {},
     goal: (_) => null,
-    hint: 'Mithai, cold drinks, sweet chai',
+    hintKey: 'dl_hintSweets',
   ),
 ];
 
