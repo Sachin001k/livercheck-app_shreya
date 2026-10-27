@@ -23,6 +23,33 @@ void main() {
       expect(result.tier, RiskTier.high);
     });
 
+    test(
+      'tier uses the rounded score (2.6704 and 2.6696 show 2.67 → high)',
+      () {
+        // 50 × AST / (100 × √25) = AST / 10
+        final a = calculateFib4(age: 50, ast: 26.704, alt: 25, platelets: 100);
+        expect(a.score, 2.67);
+        expect(a.tier, RiskTier.high);
+        final b = calculateFib4(age: 50, ast: 26.696, alt: 25, platelets: 100);
+        expect(b.score, 2.67);
+        expect(b.tier, RiskTier.high);
+      },
+    );
+
+    test('1.2996 shows 1.30 → intermediate, not low', () {
+      final r = calculateFib4(age: 50, ast: 12.996, alt: 25, platelets: 100);
+      expect(r.score, 1.30);
+      expect(r.tier, RiskTier.intermediate);
+    });
+
+    test('low cut-off is 2.0 from age 65', () {
+      expect(fib4Tier(1.8, 64), RiskTier.intermediate);
+      expect(fib4Tier(1.8, 65), RiskTier.low);
+      expect(fib4Tier(2.0, 65), RiskTier.intermediate);
+      expect(fib4Tier(2.66, 40), RiskTier.intermediate);
+      expect(fib4Tier(2.67, 40), RiskTier.high);
+    });
+
     test('age out of validated range', () {
       final young = calculateFib4(age: 25, ast: 30, alt: 30, platelets: 250);
       expect(young.ageOutOfValidatedRange, isTrue);
@@ -61,7 +88,8 @@ void main() {
     test('categorizes BMI using Asian thresholds', () {
       expect(bmiCategory(17.0), BmiCategory.underweight);
       expect(bmiCategory(22.0), BmiCategory.normal);
-      expect(bmiCategory(25.0), BmiCategory.overweight);
+      expect(bmiCategory(24.0), BmiCategory.overweight);
+      expect(bmiCategory(25.0), BmiCategory.obese);
       expect(bmiCategory(30.0), BmiCategory.obese);
     });
 

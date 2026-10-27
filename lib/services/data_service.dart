@@ -138,16 +138,23 @@ class DataService {
   static Future<Map<String, dynamic>> exportMyData() async {
     final id = _userId;
     if (id == null) throw const AuthException('Not signed in');
-    const tables = [
-      'survey_responses',
-      'assessments',
-      'daily_checkins',
-      'coin_events',
-      'special_survey_responses',
-    ];
+    // Table → a column to sort by, so paging is stable.
+    const tables = {
+      'survey_responses': 'id',
+      'assessments': 'id',
+      'daily_checkins': 'day',
+      'coin_events': 'id',
+      'special_survey_responses': 'id',
+      'daily_activity': 'activity_date',
+      'daily_habits': 'day',
+    };
+    final names = tables.keys.toList();
     final results = await Future.wait<dynamic>([
       _db.from('profiles').select().eq('id', id).maybeSingle(),
-      for (final t in tables) _db.from(t).select(),
+      for (final t in names)
+        fetchAllRows(
+          () => _db.from(t).select().order(tables[t]!, ascending: true),
+        ),
     ]);
     return {
       'exported_at': DateTime.now().toUtc().toIso8601String(),
@@ -157,8 +164,23 @@ class DataService {
         'phone': _db.auth.currentUser?.phone,
       },
       'profile': results[0],
-      for (var i = 0; i < tables.length; i++) tables[i]: results[i + 1],
+      for (var i = 0; i < names.length; i++) names[i]: results[i + 1],
     };
+  }
+
+  /// Runs [query] page by page with `.range()` until a page comes back
+  /// short, so results aren't cut off at Supabase's 1000-row limit.
+  /// [query] must build a fresh, sorted query each time it is called.
+  static Future<List<Map<String, dynamic>>> fetchAllRows(
+    PostgrestTransformBuilder<PostgrestList> Function() query, {
+    int pageSize = 1000,
+  }) async {
+    final all = <Map<String, dynamic>>[];
+    for (var from = 0; ; from += pageSize) {
+      final page = await query().range(from, from + pageSize - 1);
+      all.addAll(page);
+      if (page.length < pageSize) return all;
+    }
   }
 
   /// Records that the user accepted the current consent text.

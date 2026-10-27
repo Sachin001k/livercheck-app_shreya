@@ -1114,4 +1114,10 @@ const Map<String, String> gu = {
   'authAlreadyRegistered': 'આ ઈમેલનું પહેલેથી એકાઉન્ટ છે. નીચે સાઇન ઇન પર ટેપ કરો.',
   'authInvalidLogin': 'ઈમેલ અથવા પાસવર્ડ ખોટો છે. કૃપા કરીને ફરી પ્રયત્ન કરો.',
   'authEmailNotConfirmed': 'કૃપા કરીને પહેલા તમારો ઈમેલ પાકો કરો — અમારી લિંક માટે તમારું ઇનબૉક્સ જુઓ.',
+  'pf_organNeedsAttention': '{organ} પર ધ્યાન આપવાની જરૂર',
+  'pf_organHighRisk': '{organ} ને વધુ જોખમ',
+  'sv_unitCm': 'સેમી',
+  'sv_unitKg': 'કિલો',
+  'sv_labMustBePositive': 'કૃપા કરી 0 થી મોટી સંખ્યા લખો.',
+  'sv_labNeedAllThree': 'FIB-4 માટે ત્રણેય આંકડા જોઈએ. તેમના વગર તમારા પરિણામમાં FIB-4 નહીં હોય.',
 };

@@ -76,22 +76,63 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
     widget.back?.handler = _handleBack;
     _loadLast();
     ProgressStore.changes.addListener(_loadLast);
-    // Pre-fill what the profile already knows; the user only confirms.
-    final p = widget.profile;
-    if (p.gender == 'male') _a['sex'] = 'm';
-    if (p.gender == 'female') _a['sex'] = 'f';
-    if (p.age != null) _a['age'] = p.age!.clamp(18, 90).toDouble();
-    final h = p.heightCm, w = p.weightKg;
-    if (h != null) _a['height'] = h.clamp(130, 210).roundToDouble();
-    if (w != null) _a['weight'] = w.clamp(30, 180).roundToDouble();
+    _prefill(widget.profile);
   }
+
+  @override
+  void didUpdateWidget(HealthSurveyScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.back != oldWidget.back) {
+      if (oldWidget.back?.handler == _handleBack) {
+        oldWidget.back?.handler = null;
+      }
+      widget.back?.handler = _handleBack;
+    }
+    // The tab stays alive in an IndexedStack, so pick up profile edits
+    // (only the fields that changed; other answers stay as they are).
+    if (widget.profile != oldWidget.profile) {
+      _prefill(widget.profile, old: oldWidget.profile);
+    }
+  }
+
+  /// Body stats as pre-filled from the profile (rounded and fitted into
+  /// the slider range, so not always the real profile value).
+  final Map<String, double> _fromProfile = {};
+
+  /// Pre-fills what the profile already knows; the user only confirms.
+  /// With [old], only fields that differ from [old] are applied.
+  void _prefill(Profile p, {Profile? old}) {
+    if (old == null || p.gender != old.gender) {
+      if (p.gender == 'male') _a['sex'] = 'm';
+      if (p.gender == 'female') _a['sex'] = 'f';
+    }
+    void stat(String k, num? value, num? oldValue, double min, double max) {
+      if (value == null || (old != null && value == oldValue)) return;
+      final v = value.clamp(min, max).roundToDouble();
+      _a[k] = v;
+      _fromProfile[k] = v;
+    }
+
+    stat('age', p.age, old?.age, 18, 90);
+    stat('height', p.heightCm, old?.heightCm, 130, 210);
+    stat('weight', p.weightKg, old?.weightKg, 30, 180);
+  }
+
+  /// Body stats not to write back: left at the pre-filled value, so the
+  /// profile's real value (e.g. 200 kg, beyond the slider) is kept.
+  Set<String> _skipProfileStats(Map<String, dynamic> input) => {
+    for (final e in _fromProfile.entries)
+      if ((input[e.key] as num?)?.toDouble() == e.value) e.key,
+  };
 
   List<Question> get _visible =>
       healthQuestions.where((q) => q.showIf == null || q.showIf!(_a)).toList();
 
   void _start() => setState(() {
     // Keep earlier lifestyle answers for a quick re-check, but always
-    // ask about the blood report again.
+    // ask about the blood report again. Body stats come fresh from the
+    // profile, which may have been edited since.
+    _prefill(widget.profile);
     _a.remove('hasReport');
     _a.remove('labs');
     _started = true;
@@ -111,7 +152,10 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
   bool get _wantsBack => _started && !_saving;
 
   bool _handleBack() {
-    if (!widget.isActive || !_wantsBack) return false;
+    if (!widget.isActive) return false;
+    // While saving, swallow back so the results open over this tab.
+    if (_saving) return true;
+    if (!_wantsBack) return false;
     _back();
     return true;
   }
@@ -129,12 +173,21 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
     final input = Map<String, dynamic>.from(_a);
     if (input['hasReport'] != 'yes') input.remove('labs');
     final result = assess(input);
+    final skipStats = _skipProfileStats(input);
 
     final unknownError = context.t('sv_unknownError');
     setState(() => _saving = true);
+    // Shared by the first try and every retry, so saved rows aren't
+    // inserted twice.
+    final progress = SaveProgress();
     Future<String?> save() async {
       try {
-        await ProgressStore.saveResult(result, input);
+        await ProgressStore.saveResult(
+          result,
+          input,
+          progress: progress,
+          skipProfileStats: skipStats,
+        );
         widget.onProfileChanged();
         return null;
       } catch (e) {
@@ -164,14 +217,18 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
   @override
   Widget build(BuildContext context) {
     if (_saving) {
-      return Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(height: 16),
-            Text(context.t('sv_savingResults')),
-          ],
+      // Back is ignored while saving (see [_handleBack]).
+      return PopScope(
+        canPop: !widget.isActive,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 16),
+              Text(context.t('sv_savingResults')),
+            ],
+          ),
         ),
       );
     }
@@ -489,10 +546,8 @@ class _HealthSurveyScreenState extends State<HealthSurveyScreen> {
         const SizedBox(height: 20),
         BigButton(
           label: context.t('continueButton'),
-          onPressed: () {
-            if (_a[q.id] == null) _a[q.id] = q.def;
-            _next();
-          },
+          // A "?" (I don't know) stays unknown unless the slider is moved.
+          onPressed: _next,
         ),
         if (q.unknownLabel != null) ...[
           const SizedBox(height: 10),
@@ -600,6 +655,9 @@ class _LabsStepState extends State<_LabsStep> {
   };
   final Map<String, String?> _warn = {};
 
+  /// Once the user picks a platelet unit, stop guessing it from the number.
+  bool get _unitPicked => L['unitPicked'] == true;
+
   Map<String, dynamic> get L => widget.labs;
   Map get _skip => L['skip'] as Map;
 
@@ -614,16 +672,21 @@ class _LabsStepState extends State<_LabsStep> {
   void _changed(String k, String text) {
     final v = double.tryParse(text.trim());
     setState(() {
-      L[k] = v;
+      L[k] = v != null && v > 0 ? v : null;
       String? w;
-      if (v != null) {
+      if (v != null && v <= 0) {
+        w = 'sv_labMustBePositive';
+      } else if (v != null) {
         if (k == 'plt') {
-          // Guess the unit from the size of the number: 2.5 → lakh, 250000 → per µL
-          L['unit'] = v < 20
-              ? 'lakh'
-              : v > 20000
-              ? 'ul'
-              : 'g';
+          // Guess the unit from the size of the number until the user picks
+          // one: 2.5 → lakh, 250 → ×10⁹/L, 15000 or 250000 → per µL
+          if (!_unitPicked) {
+            L['unit'] = v < 20
+                ? 'lakh'
+                : v >= 1000
+                ? 'ul'
+                : 'g';
+          }
           final g = plateletsToG(v, L['unit'] as String);
           if (g < 20 || g > 1000) w = _warnText;
         } else if (v < 5 || v > 1000) {
@@ -683,7 +746,19 @@ class _LabsStepState extends State<_LabsStep> {
                 const SizedBox(width: 8),
                 DropdownButton<String>(
                   value: L['unit'] as String,
-                  onChanged: skip ? null : (u) => setState(() => L['unit'] = u),
+                  onChanged: skip
+                      ? null
+                      : (u) => setState(() {
+                          L['unit'] = u;
+                          L['unitPicked'] = true;
+                          final v = L['plt'] as num?;
+                          if (v != null && u != null) {
+                            final g = plateletsToG(v.toDouble(), u);
+                            _warn['plt'] = g < 20 || g > 1000
+                                ? _warnText
+                                : null;
+                          }
+                        }),
                   items: const [
                     DropdownMenuItem(value: 'lakh', child: Text('lakh/cmm')),
                     DropdownMenuItem(value: 'ul', child: Text('/µL')),
@@ -719,13 +794,36 @@ class _LabsStepState extends State<_LabsStep> {
     );
   }
 
+  /// Some values typed but not all three: FIB-4 can't be worked out.
+  bool get _incomplete {
+    final filled = _keys.where((k) => L[k] != null).length;
+    return filled > 0 && filled < _keys.length;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
     return Column(
       children: [
         _field('ast', 'sv_labAst', 'sv_labAstHint', 'sv_labAstExample'),
         _field('alt', 'sv_labAlt', 'sv_labAltHint', 'sv_labAltExample'),
         _field('plt', 'sv_labPlt', 'sv_labPltHint', 'sv_labPltExample'),
+        if (_incomplete)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 4),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: cs.onSurfaceVariant),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    context.t('sv_labNeedAllThree'),
+                    style: TextStyle(color: cs.onSurfaceVariant),
+                  ),
+                ),
+              ],
+            ),
+          ),
         const SizedBox(height: 8),
         BigButton(
           label: context.t('sv_seeMyResults'),

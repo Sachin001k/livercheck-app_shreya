@@ -12,6 +12,7 @@ import '../services/auth_service.dart';
 import '../services/data_service.dart';
 import '../theme.dart';
 import '../translations.dart';
+import '../widgets/friendly_state.dart';
 import 'login_screen.dart';
 import 'main_shell.dart';
 import 'profile_setup_screen.dart';
@@ -37,13 +38,25 @@ class _AuthGateState extends State<AuthGate> {
   @override
   void initState() {
     super.initState();
-    _subscription = AuthService.onAuthStateChange.listen((state) {
-      if (!mounted) return;
-      setState(() => _session = state.session);
-      if (state.event == AuthChangeEvent.passwordRecovery) {
-        _showSetNewPassword();
-      }
-    });
+    _subscription = AuthService.onAuthStateChange.listen(
+      (state) {
+        if (!mounted) return;
+        setState(() => _session = state.session);
+        if (state.event == AuthChangeEvent.passwordRecovery) {
+          _showSetNewPassword();
+        }
+      },
+      // Mostly a sign-in / reset link that has expired or was already
+      // used. Without this handler the error is unhandled and silent.
+      onError: (Object e) {
+        debugPrint('Auth state error: $e');
+        if (!mounted) return;
+        final key = AuthService.errorKey(e) ?? 'au_codeExpired';
+        ScaffoldMessenger.maybeOf(
+          context,
+        )?.showSnackBar(SnackBar(content: Text(context.t(key))));
+      },
+    );
   }
 
   @override
@@ -131,11 +144,46 @@ class _ProfileGate extends StatefulWidget {
 }
 
 class _ProfileGateState extends State<_ProfileGate> {
-  late Future<Profile?> _profile = _load();
+  /// Last profile loaded successfully (null: none yet, or no row).
+  Profile? _profile;
+  bool _loaded = false;
+  Object? _error;
+
+  /// Bumped per load; an older load that finishes late is ignored.
+  int _request = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
 
   Future<Profile?> _load() async {
-    final profile = await DataService.fetchProfile();
-    if (profile != null) appLanguage.value = profile.preferredLanguage;
+    var profile = await DataService.fetchProfile();
+    if (profile != null) {
+      final current = appLanguage.value;
+      if (profile.consentAt == null &&
+          current != AppLanguage.en &&
+          profile.preferredLanguage != current) {
+        // Brand-new account: keep the language picked before signing up
+        // (the new profile row defaults to English) and save it.
+        await DataService.saveLanguage(current);
+        profile = Profile(
+          id: profile.id,
+          fullName: profile.fullName,
+          age: profile.age,
+          gender: profile.gender,
+          heightCm: profile.heightCm,
+          weightKg: profile.weightKg,
+          preferredLanguage: current,
+          createdAt: profile.createdAt,
+          consentAt: profile.consentAt,
+          consentVersion: profile.consentVersion,
+        );
+      } else {
+        appLanguage.value = profile.preferredLanguage;
+      }
+    }
     // Counts today towards the streak. Failure here shouldn't block login.
     DataService.logActivityToday().catchError(
       (Object e) => debugPrint('Could not log activity: $e'),
@@ -143,39 +191,59 @@ class _ProfileGateState extends State<_ProfileGate> {
     return profile;
   }
 
-  // Block body: an arrow `() => _profile = _load()` would return the Future
-  // to setState, which Flutter rejects ("setState() callback returned a
-  // Future") — that made saves look like they had failed.
+  Future<void> _fetch() async {
+    final request = ++_request;
+    try {
+      final profile = await _load();
+      if (!mounted || request != _request) return;
+      setState(() {
+        _profile = profile;
+        _loaded = true;
+        _error = null;
+      });
+    } catch (e) {
+      if (!mounted || request != _request) return;
+      if (_profile != null) {
+        // Keep the app (and its tab state) on screen; just say so.
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(friendlyError(e, context.lang))),
+        );
+        return;
+      }
+      setState(() => _error = e);
+    }
+  }
+
+  // Block body: an arrow `() => setState(...)` returning a Future is
+  // rejected by Flutter ("setState() callback returned a Future").
   void _reload() {
-    final next = _load();
+    _fetch();
+  }
+
+  void _retry() {
     setState(() {
-      _profile = next;
+      _error = null;
+      _loaded = false;
     });
+    _fetch();
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<Profile?>(
-      future: _profile,
-      builder: (context, snapshot) {
-        // On reload, keep showing the previous profile instead of a spinner.
-        if (snapshot.connectionState != ConnectionState.done &&
-            !snapshot.hasData) {
-          return const _Splash();
-        }
-        if (snapshot.hasError) {
-          return _LoadError(error: snapshot.error!, onRetry: _reload);
-        }
-        final profile = snapshot.data;
-        if (profile == null || !profile.hasConsented) {
-          return ConsentScreen(onAccepted: _reload);
-        }
-        if (!profile.isComplete) {
-          return ProfileSetupScreen(initial: profile, onSaved: _reload);
-        }
-        return MainShell(profile: profile, onProfileChanged: _reload);
-      },
-    );
+    final error = _error;
+    // Only a first load with nothing to show yet ends on the error screen.
+    if (error != null && _profile == null) {
+      return _LoadError(error: error, onRetry: _retry);
+    }
+    if (!_loaded) return const _Splash();
+    final profile = _profile;
+    if (profile == null || !profile.hasConsented) {
+      return ConsentScreen(onAccepted: _reload);
+    }
+    if (!profile.isComplete) {
+      return ProfileSetupScreen(initial: profile, onSaved: _reload);
+    }
+    return MainShell(profile: profile, onProfileChanged: _reload);
   }
 }
 

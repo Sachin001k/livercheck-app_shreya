@@ -188,3 +188,10 @@ DailyLog logFromValues(Map<String, double?> v, {Map<String, int>? meals}) =>
       sugaryItems: v['sugar']?.round(),
       meals: meals,
     );
+
+/// How well [value] for [item] meets its target, from 0 to 1, using the same
+/// rules as [scoreDay] (so too much food or sleep scores low, not full).
+double itemScore(DailyItem item, double value, DailyTargets t) {
+  final items = scoreDay(logFromValues({item.key: value}), t).items;
+  return items.isEmpty ? 0 : items.first.value;
+}

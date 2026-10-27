@@ -69,17 +69,44 @@ class DailyStore {
     return id;
   }
 
+  /// All coins the user has ever earned, from the `coin_balances` view
+  /// (one row per user; none yet → 0). Summing coin_events in the app
+  /// would stop at Supabase's 1000-row limit.
+  static Future<int> fetchCoinTotal() async {
+    final row = await _db.from('coin_balances').select('total').maybeSingle();
+    return (row?['total'] as num?)?.toInt() ?? 0;
+  }
+
   static Future<DailySummary> load({int days = 120}) async {
     final since = dayKey(DateTime.now().subtract(Duration(days: days)));
-    final results = await Future.wait([
-      _db.from('daily_checkins').select().gte('day', since),
-      _db.from('coin_events').select('day, amount'),
+    final results = await Future.wait<dynamic>([
+      DataService.fetchAllRows(
+        () => _db
+            .from('daily_checkins')
+            .select()
+            .gte('day', since)
+            .order('day', ascending: true),
+      ),
+      // Per-day coins for the loaded window only (paged and ordered so no
+      // rows are skipped); the total comes from coin_balances.
+      DataService.fetchAllRows(
+        () => _db
+            .from('coin_events')
+            .select('day, amount')
+            .gte('day', since)
+            .order('day', ascending: true)
+            .order('id', ascending: true),
+      ),
+      fetchCoinTotal(),
     ]);
 
-    final (byDay: coinsByDay, total: total) = sumCoins(results[1]);
+    final (byDay: coinsByDay, total: _) = sumCoins(
+      results[1] as List<Map<String, dynamic>>,
+    );
+    final total = results[2] as int;
 
     final entries = <String, DailyEntry>{};
-    for (final row in results[0]) {
+    for (final row in results[0] as List<Map<String, dynamic>>) {
       final day = row['day'] as String;
       final log = DailyLog.fromMap(row);
       entries[day] = DailyEntry(

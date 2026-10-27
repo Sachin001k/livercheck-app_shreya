@@ -1125,4 +1125,10 @@ const Map<String, String> kn = {
   'authAlreadyRegistered': 'ಈ ಇಮೇಲ್‌ಗೆ ಈಗಾಗಲೇ ಖಾತೆ ಇದೆ. ಕೆಳಗೆ ಸೈನ್ ಇನ್ ಒತ್ತಿ.',
   'authInvalidLogin': 'ಇಮೇಲ್ ಅಥವಾ ಪಾಸ್‌ವರ್ಡ್ ತಪ್ಪಾಗಿದೆ. ದಯವಿಟ್ಟು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
   'authEmailNotConfirmed': 'ದಯವಿಟ್ಟು ಮೊದಲು ನಿಮ್ಮ ಇಮೇಲ್ ಖಚಿತಪಡಿಸಿ — ನಮ್ಮ ಲಿಂಕ್‌ಗಾಗಿ ಇನ್‌ಬಾಕ್ಸ್ ನೋಡಿ.',
+  'pf_organNeedsAttention': '{organ} ಕಡೆ ಗಮನ ಬೇಕು',
+  'pf_organHighRisk': '{organ} ಗೆ ಹೆಚ್ಚಿನ ಅಪಾಯ',
+  'sv_unitCm': 'ಸೆಂ.ಮೀ',
+  'sv_unitKg': 'ಕೆಜಿ',
+  'sv_labMustBePositive': 'ದಯವಿಟ್ಟು 0 ಕ್ಕಿಂತ ದೊಡ್ಡ ಸಂಖ್ಯೆ ನಮೂದಿಸಿ.',
+  'sv_labNeedAllThree': 'FIB-4 ಗೆ ಮೂರೂ ಸಂಖ್ಯೆಗಳು ಬೇಕು. ಅವಿಲ್ಲದೆ ನಿಮ್ಮ ಫಲಿತಾಂಶದಲ್ಲಿ FIB-4 ಇರುವುದಿಲ್ಲ.',
 };

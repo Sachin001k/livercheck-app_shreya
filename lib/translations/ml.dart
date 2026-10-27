@@ -1114,4 +1114,10 @@ const Map<String, String> ml = {
   'authAlreadyRegistered': 'ഈ ഇമെയിലിന് ഇതിനകം അക്കൗണ്ട് ഉണ്ട്. താഴെ സൈൻ ഇൻ ടാപ്പ് ചെയ്യുക.',
   'authInvalidLogin': 'ഇമെയിൽ അല്ലെങ്കിൽ പാസ്‌വേഡ് തെറ്റാണ്. വീണ്ടും ശ്രമിക്കുക.',
   'authEmailNotConfirmed': 'ആദ്യം നിങ്ങളുടെ ഇമെയിൽ സ്ഥിരീകരിക്കുക — ഞങ്ങളുടെ ലിങ്കിനായി ഇൻബോക്സ് നോക്കുക.',
+  'pf_organNeedsAttention': '{organ} ശ്രദ്ധിക്കണം',
+  'pf_organHighRisk': '{organ} ഉയർന്ന അപകടസാധ്യതയിൽ',
+  'sv_unitCm': 'സെ.മീ',
+  'sv_unitKg': 'കിലോ',
+  'sv_labMustBePositive': 'ദയവായി 0-ൽ കൂടുതലുള്ള ഒരു സംഖ്യ നൽകുക.',
+  'sv_labNeedAllThree': 'FIB-4-ന് മൂന്ന് സംഖ്യകളും വേണം. അവ ഇല്ലെങ്കിൽ നിങ്ങളുടെ ഫലത്തിൽ FIB-4 ഉണ്ടാകില്ല.',
 };

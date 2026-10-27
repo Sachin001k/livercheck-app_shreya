@@ -56,7 +56,7 @@ packages `supabase_flutter`, `url_launcher`.
 | Web app (public test link) | ✅ **https://livrcheck.vercel.app** (Vercel account `sachin001k`, project `livrcheck`) · ⬜ add it to Supabase URL Configuration |
 | Git / GitHub | ✅ **Public** repo [Sachin001k/livercheck-app_shreya](https://github.com/Sachin001k/livercheck-app_shreya), branch `main` |
 
-**Supabase migrations applied (last checked 1 Oct 2026):** 1 ✅ · 2 ✅ · 3 ✅ · 4 ✅ · 5 ✅ · 6 ✅
+**Supabase migrations applied (last checked 1 Oct 2026):** 1 ✅ · 2 ✅ · 3 ✅ · 4 ✅ · 5 ✅ · 6 ✅ · 7 ⬜ (written 24 Oct — run it)
 
 ---
 
@@ -108,6 +108,7 @@ Supabase → **SQL Editor** → New query → paste a file → **Run**. Run each
 | 5 | `20261001120000_consent_and_meals.sql` | `profiles.consent_at` + `consent_version`, `daily_checkins.meals` | ✅ |
 
 | 6 | `20261001150000_delete_my_account.sql` | `delete_my_account()` function (deletes the caller's account; all their rows cascade) | ✅ |
+| 7 | `20261024120000_integrity_fixes.sql` | `award_coins()` only for yourself; `daily_checkins` trigger (day ≈ today, a saved log needs ≥ 1 item, score 0–100); users can read special surveys they answered after they close | ⬜ |
 
 > Without migration 5, signed-in users get stuck on the consent screen
 > ("Could not save your consent") because the consent columns don't exist.
@@ -139,8 +140,9 @@ so no secrets are uploaded. Live: https://livrcheck.vercel.app
 
 **Android (Play Store):** step-by-step guide in
 [`docs/PLAY_STORE_GUIDE.md`](docs/PLAY_STORE_GUIDE.md). Before the first
-upload the package name must change from `com.example.livrcheck_app`
-(permanent once published), and an upload keystore must be created.
+upload an upload keystore must be created (`android/key.properties`).
+Package name is `in.livrcheck.app` — permanent once published.
+Build: `flutter build appbundle --release --dart-define-from-file=env.json`.
 
 ## 5. Architecture
 
@@ -331,7 +333,9 @@ entry. Always via a **new** migration file.
   - Pancreas: Indian Diabetes Risk Score (age, activity, family, waist).
   - Liver: BMI (Asian cut-offs 23/25), waist, diabetes, BP, cholesterol,
     sitting, sugar, fried food, alcohol, family, PCOS, thyroid; **FIB-4**
-    overrides when labs given (cut-offs 1.3 — or 2.0 at 65+ — and 2.67).
+    overrides when labs given. FIB-4 is rounded to 2 dp **once**, then
+    compared: low < 1.30 (< 2.0 at 65+), high ≥ 2.67 (`fib4Tier` in
+    `fib4.dart`, used by the survey and the `assessments` row).
   - Heart, kidneys (risk factors); lungs (tobacco).
   - Overall score = 100 − 9 per "mod" − 18 per "high" − 4 for poor sleep
     (min 10). Tiers: Thriving ≥ 80 · Strong ≥ 60 · Building ≥ 40 · Needs care.
@@ -538,7 +542,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 ---
 
 ## 10. Testing
-`flutter test` — 57 tests:
+`flutter test` — 71 tests:
 | File | Covers |
 |---|---|
 | `fib4_test.dart` | FIB-4 formula, tiers, BMI, invalid input |
@@ -550,6 +554,8 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 | `onboarding_test.dart` | welcome slides advance to Get started; consent needs both ticks; delete needs "DELETE" typed |
 | `meal_catalog_test.dart` | meal totals (kcal, fruit & veg, sweets), unique food ids |
 | `phone_layout_test.dart` | 360×640 phone at 1.0/1.5/2.0× text: Profile stat cards, Rewards badges, `BigButton` don't overflow |
+| `home_fixes_test.dart` | per-item scores (bars), daily card keeps state across the 620 px layout switch |
+| `reward_store_test.dart` | malformed special surveys skipped, numeric option values, `meals` always sent |
 | `rewards_test.dart` | badge thresholds, weekly summary maths, special survey JSON parsing |
 
 Notes: Supabase isn't initialised in tests, so saves fail there (the UI
@@ -580,6 +586,7 @@ screenshot with headless Chrome, then **delete the preview files**.
 | Stuck on "Before we start" / "Could not save your consent" | Run migration 5 |
 | Welcome slides show again | Expected on a new device/browser or after clearing site data (flag is per device) |
 | Daily check-in card: "null is not a subtype of String" after a special survey | Fixed 1 Oct: special survey coins have `day = null`; `sumCoins()` skips them per day but counts them in the total (`daily_store_test.dart`) |
+| Cards/text stretch when pulling past the top/bottom | Android 12+ stretch effect — turned off by `AppScrollBehavior` (`theme.dart`). If you still see it, you're running an old copy (e.g. `com.example.livrcheck_app`) — uninstall it |
 | Ripple not visible / "ListTile … DecoratedBox" assertion | Put ListTiles inside `SurfaceCard` (it provides a Material) |
 
 ---
@@ -590,8 +597,9 @@ screenshot with headless Chrome, then **delete the preview files**.
 - Survey code supplied by the product owner; kept as written except
   Supabase storage, profile merge, save banner, styling, small fixes
   (🫁→🍃 for liver, PCOS dropped when sex changes).
-- Survey FIB-4 cut-offs 1.3 / 2.67 (2.0 at 65+) — the standard NAFLD
-  cut-offs; the old form used 3.25.
+- FIB-4 cut-offs 1.3 / 2.67 (2.0 at 65+) — the standard NAFLD cut-offs —
+  everywhere (the old 3.25 is gone, 24 Oct). BMI categories use Asian
+  cut-offs 23 / 25 on Profile too.
 - Habit ticks + XP replaced by the daily log + coins (one daily loop, one
   currency). Streak = days with check-in or log.
 - Coin amounts set and verified server-side (trigger), not trusted from the app.
@@ -617,6 +625,9 @@ screenshot with headless Chrome, then **delete the preview files**.
 - `daily_habits` table and `daily_activity` logging are unused leftovers.
 - Unused old translation keys (FIB-4 form, username/remember me) remain.
 - Coin amounts exist in two places (`reward_rules` and `daily_targets.dart`).
+- The 90+ day bonus trusts the app-computed `daily_checkins.score` (clamped
+  0–100 by migration 7). Score the day on the server before coins can be
+  redeemed for anything of value.
 - `livrcheck_flutter/` is git-ignored (kept locally only).
 
 ## 14. Rules for working on this project

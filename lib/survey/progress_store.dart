@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../fib4.dart' show fib4Tier;
 import '../services/data_service.dart';
 import 'assess.dart';
 
@@ -76,23 +77,36 @@ class ProgressStore {
 
   /// Saves a finished health check. Also records the FIB-4 score (when
   /// blood values were entered) and updates age/height/weight on the profile.
+  ///
+  /// Pass the same [progress] when retrying, so rows that were already
+  /// saved are not inserted twice. Body stats named in [skipProfileStats]
+  /// ('age', 'height', 'weight') are not written back to the profile.
   static Future<void> saveResult(
     AssessmentResult r,
-    Map<String, dynamic> answers,
-  ) async {
-    await _db.from('survey_responses').insert({
-      'survey_version': 'v1',
-      'answers': answers,
-      'score': r.score,
-      'tier': r.tier,
-      'result': r.toJson(),
-    });
+    Map<String, dynamic> answers, {
+    SaveProgress? progress,
+    Set<String> skipProfileStats = const {},
+  }) async {
+    final done = progress ?? SaveProgress();
+    if (done.responseId == null) {
+      final row = await _db
+          .from('survey_responses')
+          .insert({
+            'survey_version': 'v1',
+            'answers': answers,
+            'score': r.score,
+            'tier': r.tier,
+            'result': r.toJson(),
+          })
+          .select('id')
+          .single();
+      done.responseId = row['id'] as String;
+    }
 
     final labs = answers['labs'] as Map?;
     final fib4 = r.fib4;
-    if (fib4 != null && labs != null) {
+    if (fib4 != null && labs != null && !done.assessmentSaved) {
       final age = (answers['age'] as num).toDouble();
-      final lowCut = age >= 65 ? 2.0 : 1.3;
       await _db.from('assessments').insert({
         'age': age,
         'ast': labs['ast'],
@@ -101,23 +115,30 @@ class ProgressStore {
           (labs['plt'] as num).toDouble(),
           labs['unit'] as String? ?? 'lakh',
         ),
+        // Same rounded value and cut-offs as the results screen.
         'fib4_score': fib4,
-        'risk_tier': fib4 > 2.67
-            ? 'high'
-            : fib4 >= lowCut
-            ? 'intermediate'
-            : 'low',
+        'risk_tier': fib4Tier(fib4, age).name,
         'height_cm': answers['height'],
         'weight_kg': answers['weight'],
         'bmi': r.bmi,
       });
+      done.assessmentSaved = true;
     }
 
+    num? stat(String k) =>
+        skipProfileStats.contains(k) ? null : answers[k] as num?;
     await DataService.updateBodyStats(
-      age: (answers['age'] as num?)?.round(),
-      heightCm: (answers['height'] as num?)?.toDouble(),
-      weightKg: (answers['weight'] as num?)?.toDouble(),
+      age: stat('age')?.round(),
+      heightCm: stat('height')?.toDouble(),
+      weightKg: stat('weight')?.toDouble(),
     );
     changes.value++;
   }
+}
+
+/// What [ProgressStore.saveResult] has already saved, so a retry after a
+/// partial failure doesn't insert the same rows again.
+class SaveProgress {
+  String? responseId;
+  bool assessmentSaved = false;
 }

@@ -94,14 +94,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
+  /// Bumped on every [_load]; older loads that finish later are ignored.
+  int _loadId = 0;
+
   Future<void> _load() async {
+    final id = ++_loadId;
     try {
       final results = await Future.wait([
         ProgressStore.load(),
         DataService.fetchAssessments(),
         DailyStore.load(days: 365),
       ]);
-      if (!mounted) return;
+      if (!mounted || id != _loadId) return;
       setState(() {
         _data = _ProfileData(
           results[0] as ProgressData,
@@ -111,7 +115,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _error = null;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = e);
+      if (!mounted || id != _loadId) return;
+      setState(() => _error = e);
+      // The error card only shows when nothing is loaded yet; otherwise
+      // say so here instead of failing silently.
+      if (_data != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(friendlyError(e, context.lang))),
+        );
+      }
     }
   }
 
@@ -600,7 +612,7 @@ class _ScoreChart extends StatelessWidget {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         child: Text(
-                          '${e.date.day}/${e.date.month}',
+                          '${e.date.day} ${monthShort(context, e.date.month)}',
                           maxLines: 1,
                           style: TextStyle(
                             fontSize: 10,
@@ -814,8 +826,12 @@ class _HistoryRow extends StatelessWidget {
         );
       concern = worst.isEmpty
           ? context.t('pf_allOrgansGood')
-          : '${organName(context, worst.first.key)}: '
-                '${levelText(worst.first.level, context).toLowerCase()}';
+          : context.tf(
+              worst.first.level == 'high'
+                  ? 'pf_organHighRisk'
+                  : 'pf_organNeedsAttention',
+              {'organ': organName(context, worst.first.key)},
+            );
     }
     final color = _scoreColor(entry.score, cs);
 

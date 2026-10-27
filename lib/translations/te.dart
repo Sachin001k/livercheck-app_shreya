@@ -1126,4 +1126,10 @@ const Map<String, String> te = {
   'authAlreadyRegistered': 'ఈ ఈమెయిల్‌కు ఇప్పటికే ఖాతా ఉంది. కింద సైన్ ఇన్‌పై నొక్కండి.',
   'authInvalidLogin': 'ఈమెయిల్ లేదా పాస్‌వర్డ్ తప్పు. దయచేసి మళ్లీ ప్రయత్నించండి.',
   'authEmailNotConfirmed': 'దయచేసి ముందుగా మీ ఈమెయిల్‌ను నిర్ధారించండి — మా లింక్ కోసం మీ ఇన్‌బాక్స్ చూడండి.',
+  'pf_organNeedsAttention': '{organ} పై శ్రద్ధ అవసరం',
+  'pf_organHighRisk': '{organ} కు ఎక్కువ ప్రమాదం',
+  'sv_unitCm': 'సెం.మీ',
+  'sv_unitKg': 'కిలో',
+  'sv_labMustBePositive': 'దయచేసి 0 కంటే ఎక్కువ సంఖ్యను ఇవ్వండి.',
+  'sv_labNeedAllThree': 'FIB-4 కోసం మూడు సంఖ్యలూ కావాలి. అవి లేకుండా మీ ఫలితాల్లో FIB-4 ఉండదు.',
 };

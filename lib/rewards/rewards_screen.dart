@@ -15,6 +15,10 @@ import 'special_survey_screen.dart';
 
 const int coinsPerLevel = 100;
 
+/// Days of daily history loaded for badge maths: effectively all of it, so
+/// streak and 90+ day badges never re-lock as old days age out.
+const int _badgeHistoryDays = 100 * 365;
+
 /// "5 Oct" style date in the current language.
 String _shortDate(BuildContext context, DateTime d) =>
     '${d.day} ${monthShort(context, d.month)}';
@@ -45,6 +49,9 @@ class _RewardsScreenState extends State<RewardsScreen> {
   _Data? _data;
   Object? _error;
 
+  /// Bumped per load; an older load that finishes late is ignored.
+  int _request = 0;
+
   @override
   void initState() {
     super.initState();
@@ -59,11 +66,12 @@ class _RewardsScreenState extends State<RewardsScreen> {
   }
 
   Future<void> _load() async {
+    final request = ++_request;
     try {
       final results = await Future.wait([
         RewardStore.load(),
         ProgressStore.load(),
-        DailyStore.load(days: 365),
+        DailyStore.load(days: _badgeHistoryDays),
         DataService.fetchAssessments(limit: 1),
       ]);
       final rewards = results[0] as RewardsData;
@@ -84,13 +92,20 @@ class _RewardsScreenState extends State<RewardsScreen> {
         bloodReportAdded: fib4.isNotEmpty,
         specialSurveysDone: rewards.specialSurveysDone,
       );
-      if (!mounted) return;
+      if (!mounted || request != _request) return;
       setState(() {
         _data = _Data(rewards, badges);
         _error = null;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = e);
+      if (!mounted || request != _request) return;
+      if (_data != null) {
+        // Keep showing what we have, but say the refresh failed.
+        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+          SnackBar(content: Text(friendlyError(e, context.lang))),
+        );
+      }
+      setState(() => _error = e);
     }
   }
 

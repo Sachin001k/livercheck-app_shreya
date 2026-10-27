@@ -128,8 +128,10 @@ class DailyLog {
     'sleep_hours': sleepHours,
     'fruit_veg': fruitVeg,
     'sugary_items': sugaryItems,
-    // Only sent when used, so saving still works before migration 5.
-    if (meals != null && meals!.isNotEmpty) 'meals': meals,
+    // Always sent (null when empty) so clearing the meal picker also
+    // clears the saved meals — the upsert merges, so a missing key would
+    // keep the old ones. Needs migration 5.
+    'meals': (meals == null || meals!.isEmpty) ? null : meals,
   };
 }
 

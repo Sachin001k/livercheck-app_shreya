@@ -5,8 +5,9 @@ import '../survey/health_ui.dart';
 import '../theme.dart';
 import 'meal_catalog.dart';
 
-/// Opens the meal picker. Returns the picked foods ({id: portions}), or
-/// null if the user closed it without saving.
+/// Opens the meal picker. Returns the picked foods ({id: portions}; empty
+/// when the user cleared earlier picks), or null if the user closed it
+/// without saving.
 Future<Map<String, int>?> showMealPicker(
   BuildContext context, {
   Map<String, int> initial = const {},
@@ -95,7 +96,7 @@ class _MealPickerState extends State<_MealPicker> {
                   tween: Tween(end: totals.kcal.toDouble()),
                   duration: const Duration(milliseconds: 400),
                   builder: (_, v, _) => Text(
-                    '${v.round()} kcal',
+                    '${v.round()} ${context.t('dl_unitKcal')}',
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
@@ -235,13 +236,17 @@ class _MealPickerState extends State<_MealPicker> {
                     ),
                   const SizedBox(width: 8),
                   Expanded(
+                    // An empty selection can still be applied when foods
+                    // were picked before, so the user can clear them all.
                     child: BigButton(
-                      label: _picked.isEmpty
-                          ? context.t('ml_pickAtLeastOne')
-                          : context.tf('ml_useKcal', {'n': totals.kcal}),
-                      onPressed: _picked.isEmpty
+                      label: _picked.isNotEmpty
+                          ? context.tf('ml_useKcal', {'n': totals.kcal})
+                          : widget.initial.isNotEmpty
+                          ? context.t('save')
+                          : context.t('ml_pickAtLeastOne'),
+                      onPressed: _picked.isEmpty && widget.initial.isEmpty
                           ? null
-                          : () => Navigator.of(context).pop(_picked),
+                          : () => Navigator.of(context).pop({..._picked}),
                     ),
                   ),
                 ],
@@ -287,7 +292,7 @@ class _FoodRow extends StatelessWidget {
               children: [
                 Text(name, style: const TextStyle(fontWeight: FontWeight.w600)),
                 Text(
-                  '${food.portion(lang)} · ${food.kcal} kcal',
+                  '${food.portion(lang)} · ${food.kcal} ${context.t('dl_unitKcal')}',
                   style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
                 ),
               ],

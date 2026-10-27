@@ -1149,4 +1149,10 @@ const Map<String, String> en = {
   'pp_medicalBody': 'LivrCheck is a screening and wellness tool. It does not diagnose any condition. Always talk to a doctor about your health.',
   'pp_changesTitle': 'Changes',
   'pp_changesBody': 'If this policy changes we will ask you to agree again in the app.',
+  'pf_organNeedsAttention': '{organ} needs attention',
+  'pf_organHighRisk': '{organ} at high risk',
+  'sv_unitCm': 'cm',
+  'sv_unitKg': 'kg',
+  'sv_labMustBePositive': 'Please enter a number above 0.',
+  'sv_labNeedAllThree': 'FIB-4 needs all three numbers. Without them, your results won\'t include it.',
 };

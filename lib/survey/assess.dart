@@ -5,6 +5,8 @@
 // ======================================================================
 import 'dart:math' as math;
 
+import '../fib4.dart' show RiskTier, fib4Tier, roundFib4;
+
 class OrganResult {
   final String key, name, does, level, confidence;
   final List<String> reasons;
@@ -308,21 +310,27 @@ AssessmentResult assess(Map<String, dynamic> a) {
     final ast = (labs?['ast'] as num?)?.toDouble();
     final alt = (labs?['alt'] as num?)?.toDouble();
     final pltRaw = (labs?['plt'] as num?)?.toDouble();
-    if (ast != null && alt != null && pltRaw != null && alt > 0 && pltRaw > 0) {
+    if (ast != null &&
+        alt != null &&
+        pltRaw != null &&
+        ast > 0 &&
+        alt > 0 &&
+        pltRaw > 0) {
       final plt = plateletsToG(
         pltRaw,
         labs!['unit'] as String? ?? 'lakh',
       ); // → ×10⁹/L
-      final fib4 = (age * ast) / (plt * math.sqrt(alt));
-      fib4Value = double.parse(fib4.toStringAsFixed(2));
-      final lowCut = age >= 65 ? 2.0 : 1.3;
+      // Rounded once; the same value decides the tier, is shown and saved.
+      final fib4 = roundFib4((age * ast) / (plt * math.sqrt(alt)));
+      fib4Value = fib4;
+      final tier = fib4Tier(fib4, age);
       extra = textRef('sv_extraFib4', {'n': fib4.toStringAsFixed(2)});
       conf = 'sv_confLiverFib4';
-      if (fib4 > 2.67) {
+      if (tier == RiskTier.high) {
         level = 'high';
         r.insert(0, 'sv_rLivFib4High');
         tests.add('sv_testFibroscan');
-      } else if (fib4 >= lowCut) {
+      } else if (tier == RiskTier.intermediate) {
         level = 'mod';
         r.insert(0, 'sv_rLivFib4Mid');
         tests.add('sv_testFibroscan');

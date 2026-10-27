@@ -87,7 +87,7 @@ final List<Question> healthQuestions = [
     max: 210,
     step: 1,
     def: 165,
-    unit: 'cm',
+    unit: 'sv_unitCm',
     alt: _feetInches,
   ),
   Question(
@@ -98,7 +98,7 @@ final List<Question> healthQuestions = [
     max: 180,
     step: 1,
     def: 65,
-    unit: 'kg',
+    unit: 'sv_unitKg',
     why: 'sv_qWeightWhy',
   ),
   Question(
@@ -109,7 +109,7 @@ final List<Question> healthQuestions = [
     max: 150,
     step: 1,
     def: 85,
-    unit: 'cm',
+    unit: 'sv_unitCm',
     alt: (v) => textRef('sv_altInches', {'n': (v / 2.54).round()}),
     why: 'sv_qWaistWhy',
     unknownLabel: 'sv_qWaistUnknown',

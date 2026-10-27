@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../app_language.dart';
 import '../services/auth_service.dart';
+import '../services/data_service.dart';
 import '../survey/health_ui.dart';
 import 'reward_store.dart';
 
@@ -55,6 +56,9 @@ class _SpecialSurveyScreenState extends State<SpecialSurveyScreen> {
       );
       if (mounted) Navigator.of(context).pop(true);
     } catch (e) {
+      // The answers may have been saved even though the coins weren't:
+      // let the Rewards tab and Home banner reload what's really stored.
+      DataService.changes.value++;
       if (!mounted) return;
       setState(() {
         _saving = false;

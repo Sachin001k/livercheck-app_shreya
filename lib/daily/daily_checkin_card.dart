@@ -48,9 +48,15 @@ class DailyCheckinCard extends StatefulWidget {
   State<DailyCheckinCard> createState() => _DailyCheckinCardState();
 }
 
+/// Lets Home's pull to refresh wait for the card's reload (via a GlobalKey).
+abstract class DailyCheckinCardState extends State<DailyCheckinCard> {
+  /// The most recent reload (started by [DataService.changes] or a retry).
+  Future<void> get latestLoad;
+}
+
 enum _Phase { overview, logging }
 
-class _DailyCheckinCardState extends State<DailyCheckinCard>
+class _DailyCheckinCardState extends DailyCheckinCardState
     with SingleTickerProviderStateMixin {
   DailySummary? _summary;
   Object? _error;
@@ -69,6 +75,11 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
   Timer? _celebrationTimer;
 
   late final AnimationController _pulse;
+  late final CurvedAnimation _pulseCurve;
+  late final Animation<double> _pulseScale;
+
+  /// Bumped on every [_load]; older loads that finish later are ignored.
+  int _loadId = 0;
 
   DailyTargets get _targets => targetsFor(
     gender: widget.profile.gender,
@@ -86,6 +97,8 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     )..repeat(reverse: true);
+    _pulseCurve = CurvedAnimation(parent: _pulse, curve: Curves.easeInOut);
+    _pulseScale = Tween(begin: 1.0, end: 1.07).animate(_pulseCurve);
     _load();
     DataService.changes.addListener(_load);
     widget.back?.handler = _handleBack;
@@ -112,21 +125,30 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
     if (widget.back?.handler == _handleBack) widget.back?.handler = null;
     DataService.changes.removeListener(_load);
     _pages.dispose();
+    _pulseCurve.dispose();
     _pulse.dispose();
     _celebrationTimer?.cancel();
     super.dispose();
   }
 
-  Future<void> _load() async {
+  Future<void> _latestLoad = Future<void>.value();
+
+  @override
+  Future<void> get latestLoad => _latestLoad;
+
+  /// Reloads today's data; [latestLoad] lets Home's pull to refresh wait.
+  Future<void> _load() => _latestLoad = _loadNow(++_loadId);
+
+  Future<void> _loadNow(int id) async {
     try {
       final s = await DailyStore.load();
-      if (!mounted) return;
+      if (!mounted || id != _loadId) return;
       setState(() {
         _summary = s;
         _error = null;
       });
     } catch (e) {
-      if (mounted) setState(() => _error = e);
+      if (mounted && id == _loadId) setState(() => _error = e);
     }
   }
 
@@ -139,6 +161,7 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
   }
 
   void _showError(Object e) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(AuthService.describeError(e, context.t('genericError'))),
@@ -197,12 +220,25 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
     if (picked == null || !mounted) return;
     final totals = mealTotals(picked);
     setState(() {
+      if (picked.isEmpty) {
+        // All picks cleared: forget the calories they filled in, but keep a
+        // number the user set by hand.
+        final before = mealTotals(_meals).kcal.toDouble().clamp(0, 4000);
+        if (_meals.isNotEmpty && _values['calories'] == before) {
+          _values['calories'] = null;
+        }
+        _meals = {};
+        return;
+      }
       _meals = picked;
       _values['calories'] = totals.kcal.toDouble().clamp(0, 4000);
+      // Only fill items the user hasn't answered, and only with something
+      // actually picked (an unanswered sweets item must not become a
+      // perfect "0 sweets").
       if (_values['fruitVeg'] == null && totals.fruitVeg > 0) {
         _values['fruitVeg'] = totals.fruitVeg.clamp(0, 10).toDouble();
       }
-      if (_values['sugar'] == null) {
+      if (_values['sugar'] == null && totals.sweets > 0) {
         _values['sugar'] = totals.sweets.clamp(0, 6).toDouble();
       }
     });
@@ -379,9 +415,7 @@ class _DailyCheckinCardState extends State<DailyCheckinCard>
                     ],
                   )
                 : ScaleTransition(
-                    scale: Tween(begin: 1.0, end: 1.07).animate(
-                      CurvedAnimation(parent: _pulse, curve: Curves.easeInOut),
-                    ),
+                    scale: _pulseScale,
                     child: FilledButton(
                       onPressed: _busy ? null : _checkIn,
                       style: FilledButton.styleFrom(
@@ -586,12 +620,9 @@ class _ItemPage extends StatelessWidget {
     final hint = item.hint(lang);
     final skipped = value == null;
     final v = value ?? item.startValue(targets);
-    final goal = item.goal(targets);
-    final progress = skipped
-        ? 0.0
-        : goal == null
-        ? (v == 0 ? 1.0 : (1 - v / 3).clamp(0.0, 1.0))
-        : (v / goal).clamp(0.0, 1.0);
+    // Same per-item score as the day score, so going over a target (e.g.
+    // 4000 kcal or 12 h of sleep) shows a short red bar, not a full one.
+    final progress = skipped ? 0.0 : itemScore(item, v, targets);
     void set(double x) => onChanged(
       ((x / item.step).round() * item.step)
           .clamp(item.min, item.max)

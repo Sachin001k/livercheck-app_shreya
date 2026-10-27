@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../daily/daily_store.dart';
 import '../daily/daily_targets.dart';
 import '../services/data_service.dart';
 
@@ -36,19 +38,22 @@ class SurveyQuestion {
 
   const SurveyQuestion(this.id, this.type, this.title, this.options);
 
-  factory SurveyQuestion.fromJson(Map<String, dynamic> j) => SurveyQuestion(
-    j['id'] as String,
-    j['type'] as String? ?? 'choice',
-    j['title'] as String,
-    [
+  /// Throws [FormatException] if the id or title is missing. Option
+  /// values are read as text, so `{"v": 1}` works like `{"v": "1"}`.
+  factory SurveyQuestion.fromJson(Map<String, dynamic> j) {
+    final id = j['id'], title = j['title'];
+    if (id == null || title == null) {
+      throw FormatException('Survey question needs an id and a title', j);
+    }
+    return SurveyQuestion('$id', '${j['type'] ?? 'choice'}', '$title', [
       for (final o in (j['options'] as List? ?? const []))
         (
-          v: (o as Map)['v'] as String,
-          label: o['label'] as String,
-          emoji: o['emoji'] as String? ?? '',
+          v: '${(o as Map)['v']}',
+          label: '${o['label'] ?? o['v']}',
+          emoji: '${o['emoji'] ?? ''}',
         ),
-    ],
-  );
+    ]);
+  }
 }
 
 /// An announced survey with its own coin reward (table `special_surveys`).
@@ -79,10 +84,21 @@ class RewardsData {
   final List<CoinEvent> events;
   final List<SpecialSurvey> surveys;
 
-  const RewardsData(this.rules, this.events, this.surveys);
+  /// All coins ever earned (from the `coin_balances` view, so it isn't cut
+  /// short like [events]).
+  final int totalCoins;
 
-  int get totalCoins => events.fold(0, (s, e) => s + e.amount);
-  int get specialSurveysDone => surveys.where((s) => s.completed).length;
+  /// Special surveys answered, including ones that have since closed.
+  final int specialSurveysDone;
+
+  const RewardsData(
+    this.rules,
+    this.events,
+    this.surveys, {
+    required this.totalCoins,
+    required this.specialSurveysDone,
+  });
+
   List<SpecialSurvey> get openSurveys =>
       surveys.where((s) => !s.completed).toList();
 }
@@ -133,23 +149,26 @@ class RewardStore {
   static SupabaseClient get _db => Supabase.instance.client;
 
   static Future<RewardsData> load() async {
-    final results = await Future.wait([
+    final results = await Future.wait<dynamic>([
       _db
           .from('reward_rules')
           .select('reason, amount, description')
           .eq('active', true),
+      // History list only; the total comes from coin_balances.
       _db
           .from('coin_events')
           .select('reason, amount, created_at, ref_id')
           .order('created_at', ascending: false)
           .limit(200),
-      // RLS only returns surveys that are live right now.
+      // RLS returns surveys that are live right now, plus (migration
+      // 20261024120000) ones this user has answered.
       _db.from('special_surveys').select().order('starts_at', ascending: false),
       _db.from('special_survey_responses').select('survey_id'),
+      DailyStore.fetchCoinTotal(),
     ]);
 
     final rules = [
-      for (final r in results[0])
+      for (final r in results[0] as List)
         RewardRule(
           r['reason'] as String,
           (r['amount'] as num).toInt(),
@@ -157,7 +176,7 @@ class RewardStore {
         ),
     ];
     final events = [
-      for (final r in results[1])
+      for (final r in results[1] as List)
         CoinEvent(
           r['reason'] as String,
           (r['amount'] as num).toInt(),
@@ -165,25 +184,20 @@ class RewardStore {
           r['ref_id'] as String?,
         ),
     ];
-    final answered = {for (final r in results[3]) r['survey_id'] as String};
-    final surveys = [
-      for (final r in results[2])
-        SpecialSurvey(
-          id: r['id'] as String,
-          title: r['title'] as String,
-          description: r['description'] as String?,
-          questions: [
-            for (final q in (r['questions'] as List? ?? const []))
-              SurveyQuestion.fromJson(Map<String, dynamic>.from(q as Map)),
-          ],
-          rewardCoins: (r['reward_coins'] as num).toInt(),
-          endsAt: r['ends_at'] == null
-              ? null
-              : DateTime.parse(r['ends_at'] as String).toLocal(),
-          completed: answered.contains(r['id']),
-        ),
-    ];
-    return RewardsData(rules.isEmpty ? defaultRules : rules, events, surveys);
+    final answered = {
+      for (final r in results[3] as List) '${r['survey_id']}',
+    };
+    final surveys = parseSpecialSurveys(
+      List<Map<String, dynamic>>.from(results[2] as List),
+      answered,
+    );
+    return RewardsData(
+      rules.isEmpty ? defaultRules : rules,
+      events,
+      surveys,
+      totalCoins: results[4] as int,
+      specialSurveysDone: answered.length,
+    );
   }
 
   /// Live surveys the user hasn't answered yet (for the Home banner).
@@ -200,18 +214,66 @@ class RewardStore {
   ) async {
     final uid = _db.auth.currentUser?.id;
     if (uid == null) throw const AuthException('Not signed in');
-    await _db.from('special_survey_responses').insert({
-      'survey_id': survey.id,
-      'user_id': uid,
-      'answers': answers,
-    });
-    await _db.from('coin_events').insert({
-      'user_id': uid,
-      'reason': 'special_survey',
-      'ref_id': survey.id,
-      'amount': 0, // replaced by the server with the survey's reward
-    });
+    // Both steps are safe to repeat: if the coin step failed last time, a
+    // retry skips the saved answers and claims the coins.
+    await _db
+        .from('special_survey_responses')
+        .upsert(
+          {'survey_id': survey.id, 'user_id': uid, 'answers': answers},
+          onConflict: 'survey_id,user_id',
+          ignoreDuplicates: true,
+        );
+    try {
+      await _db.from('coin_events').insert({
+        'user_id': uid,
+        'reason': 'special_survey',
+        'ref_id': survey.id,
+        'amount': 0, // replaced by the server with the survey's reward
+      });
+    } on PostgrestException catch (e) {
+      // Unique violation: the coins were already paid. (The once-per-survey
+      // index is partial, so ON CONFLICT can't target it — catch instead.)
+      if (e.code != '23505') rethrow;
+    }
     DataService.changes.value++;
     return survey.rewardCoins;
   }
+}
+
+/// Builds [SpecialSurvey]s from `special_surveys` rows. A malformed row
+/// is skipped (and logged) so one bad survey can't break the Rewards tab
+/// or the Home banner.
+List<SpecialSurvey> parseSpecialSurveys(
+  List<Map<String, dynamic>> rows,
+  Set<String> answered,
+) {
+  final surveys = <SpecialSurvey>[];
+  for (final r in rows) {
+    try {
+      final id = '${r['id']}';
+      final title = r['title'];
+      if (r['id'] == null || title == null) {
+        throw const FormatException('Survey needs an id and a title');
+      }
+      surveys.add(
+        SpecialSurvey(
+          id: id,
+          title: '$title',
+          description: r['description'] == null ? null : '${r['description']}',
+          questions: [
+            for (final q in (r['questions'] as List? ?? const []))
+              SurveyQuestion.fromJson(Map<String, dynamic>.from(q as Map)),
+          ],
+          rewardCoins: (r['reward_coins'] as num? ?? 0).toInt(),
+          endsAt: r['ends_at'] == null
+              ? null
+              : DateTime.parse('${r['ends_at']}').toLocal(),
+          completed: answered.contains(id),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Skipping malformed special survey ${r['id']}: $e');
+    }
+  }
+  return surveys;
 }

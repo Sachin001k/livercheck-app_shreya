@@ -1123,4 +1123,10 @@ const Map<String, String> mr = {
   'authAlreadyRegistered': 'या ईमेलचे आधीच अकाउंट आहे. खाली साइन इन वर टॅप करा.',
   'authInvalidLogin': 'ईमेल किंवा पासवर्ड चुकीचा आहे. कृपया पुन्हा प्रयत्न करा.',
   'authEmailNotConfirmed': 'कृपया आधी तुमचा ईमेल पक्का करा — आमच्या लिंकसाठी तुमचा इनबॉक्स पाहा.',
+  'pf_organNeedsAttention': '{organ} कडे लक्ष द्यायला हवे',
+  'pf_organHighRisk': '{organ} ला जास्त धोका',
+  'sv_unitCm': 'सेमी',
+  'sv_unitKg': 'किलो',
+  'sv_labMustBePositive': 'कृपया 0 पेक्षा मोठी संख्या टाका.',
+  'sv_labNeedAllThree': 'FIB-4 साठी तिन्ही आकडे लागतात. त्यांच्याशिवाय तुमच्या निकालात FIB-4 नसेल.',
 };

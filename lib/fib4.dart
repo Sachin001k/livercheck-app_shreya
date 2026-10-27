@@ -8,15 +8,19 @@ import 'dart:math';
 ///
 ///   FIB-4 = (Age * AST) / (Platelets * sqrt(ALT))
 ///
-/// Risk tiers:
-///   < 1.30           -> low          (NPV ~90.7% for advanced fibrosis)
-///   1.30 - 3.25       -> intermediate
-///   > 3.25           -> high         (97% specificity for advanced fibrosis)
+/// The score is rounded once to 2 decimals and that rounded value is used
+/// for the tier, the display and storage, so they always agree.
+///
+/// Risk tiers (standard NAFLD cut-offs, same as the health check):
+///   < 1.30 (< 2.0 at age 65+)  -> low
+///   up to 2.67                 -> intermediate
+///   >= 2.67                    -> high
 ///
 /// Validated primarily for adults aged 35-65.
 
 const double lowRiskCutoff = 1.30;
-const double highRiskCutoff = 3.25;
+const double lowRiskCutoffAge65 = 2.0;
+const double highRiskCutoff = 2.67;
 const int validatedAgeMin = 35;
 const int validatedAgeMax = 65;
 
@@ -55,17 +59,8 @@ Fib4Result calculateFib4({
     }
   }
 
-  final rawScore = (age * ast) / (platelets * sqrt(alt));
-  final score = double.parse(rawScore.toStringAsFixed(2));
-
-  RiskTier tier;
-  if (score < lowRiskCutoff) {
-    tier = RiskTier.low;
-  } else if (score <= highRiskCutoff) {
-    tier = RiskTier.intermediate;
-  } else {
-    tier = RiskTier.high;
-  }
+  final score = roundFib4((age * ast) / (platelets * sqrt(alt)));
+  final tier = fib4Tier(score, age);
 
   final ageOutOfRange = age < validatedAgeMin || age > validatedAgeMax;
 
@@ -74,6 +69,18 @@ Fib4Result calculateFib4({
     tier: tier,
     ageOutOfValidatedRange: ageOutOfRange,
   );
+}
+
+/// Rounds a raw FIB-4 value to 2 decimals (done once, before any cut-off).
+double roundFib4(double raw) => double.parse(raw.toStringAsFixed(2));
+
+/// Tier for an already rounded FIB-4 [score]. The low cut-off is 2.0 from
+/// age 65.
+RiskTier fib4Tier(double score, double age) {
+  final lowCut = age >= 65 ? lowRiskCutoffAge65 : lowRiskCutoff;
+  if (score >= highRiskCutoff) return RiskTier.high;
+  if (score >= lowCut) return RiskTier.intermediate;
+  return RiskTier.low;
 }
 
 enum BmiCategory { underweight, normal, overweight, obese }
@@ -89,10 +96,10 @@ double calculateBmi({required double heightCm, required double weightKg}) {
 
 /// Uses Asian-population BMI thresholds (lower than standard WHO
 /// thresholds), since these populations show elevated metabolic risk at
-/// lower BMI values.
+/// lower BMI values: 23 overweight, 25 obese (same as the health check).
 BmiCategory bmiCategory(double bmi) {
   if (bmi < 18.5) return BmiCategory.underweight;
   if (bmi < 23.0) return BmiCategory.normal;
-  if (bmi < 27.5) return BmiCategory.overweight;
+  if (bmi < 25.0) return BmiCategory.overweight;
   return BmiCategory.obese;
 }

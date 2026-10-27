@@ -63,6 +63,45 @@ void main() {
     },
   );
 
+  group('FIB-4 boundaries use the rounded value', () {
+    Map<String, dynamic> withAst(double ast) => {
+      ...healthy,
+      'age': 50.0,
+      // 50 × AST / (100 × √25) = AST / 10
+      'labs': {'ast': ast, 'alt': 25.0, 'plt': 100.0, 'unit': 'g'},
+    };
+
+    test('2.6704 → 2.67 → high', () {
+      final r = assess(withAst(26.704));
+      expect(r.fib4, 2.67);
+      expect(r.organs['liver']!.level, 'high');
+      expect(r.organs['liver']!.extra, contains('2.67'));
+    });
+
+    test('2.6696 → 2.67 → high (was moderate before)', () {
+      final r = assess(withAst(26.696));
+      expect(r.fib4, 2.67);
+      expect(r.organs['liver']!.level, 'high');
+    });
+
+    test('1.2996 → 1.30 → moderate (was low before)', () {
+      final r = assess(withAst(12.996));
+      expect(r.fib4, 1.30);
+      expect(r.organs['liver']!.level, 'mod');
+      expect(r.organs['liver']!.reasons.first, 'sv_rLivFib4Mid');
+    });
+
+    test('zero or negative lab values give no FIB-4', () {
+      expect(
+        assess({
+          ...healthy,
+          'labs': {'ast': 0.0, 'alt': 25.0, 'plt': 100.0, 'unit': 'g'},
+        }).fib4,
+        isNull,
+      );
+    });
+  });
+
   test('missing waist is estimated', () {
     final r = assess({...healthy, 'waist': null});
     expect(r.waistEstimated, isTrue);

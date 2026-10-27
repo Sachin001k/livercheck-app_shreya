@@ -1118,4 +1118,10 @@ const Map<String, String> or = {
   'authAlreadyRegistered': 'ଏହି ଇମେଲର ପୂର୍ବରୁ ଆକାଉଣ୍ଟ ଅଛି। ତଳେ ସାଇନ୍ ଇନ୍ ଦବାନ୍ତୁ।',
   'authInvalidLogin': 'ଇମେଲ କିମ୍ବା ପାସୱାର୍ଡ ଭୁଲ। ଦୟାକରି ପୁଣି ଚେଷ୍ଟା କରନ୍ତୁ।',
   'authEmailNotConfirmed': 'ଦୟାକରି ପ୍ରଥମେ ଆପଣଙ୍କ ଇମେଲ ନିଶ୍ଚିତ କରନ୍ତୁ — ଆମ ଲିଙ୍କ୍ ପାଇଁ ଇନବକ୍ସ ଦେଖନ୍ତୁ।',
+  'pf_organNeedsAttention': '{organ} ପ୍ରତି ଧ୍ୟାନ ଦେବା ଦରକାର',
+  'pf_organHighRisk': '{organ} ପାଇଁ ଅଧିକ ବିପଦ',
+  'sv_unitCm': 'ସେମି',
+  'sv_unitKg': 'କିଲୋ',
+  'sv_labMustBePositive': 'ଦୟାକରି 0 ରୁ ବଡ଼ ସଂଖ୍ୟା ଦିଅନ୍ତୁ।',
+  'sv_labNeedAllThree': 'FIB-4 ପାଇଁ ତିନୋଟି ସଂଖ୍ୟା ଦରକାର। ସେଗୁଡ଼ିକ ବିନା ଆପଣଙ୍କ ଫଳାଫଳରେ FIB-4 ରହିବ ନାହିଁ।',
 };

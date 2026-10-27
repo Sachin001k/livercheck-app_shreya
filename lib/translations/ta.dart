@@ -1139,4 +1139,10 @@ const Map<String, String> ta = {
   'authAlreadyRegistered': 'இந்த மின்னஞ்சலுக்கு ஏற்கனவே கணக்கு உள்ளது. கீழே உள்நுழை என்பதைத் தட்டுங்கள்.',
   'authInvalidLogin': 'மின்னஞ்சல் அல்லது கடவுச்சொல் தவறு. மீண்டும் முயலுங்கள்.',
   'authEmailNotConfirmed': 'முதலில் உங்கள் மின்னஞ்சலை உறுதிப்படுத்துங்கள் — எங்கள் இணைப்புக்கு இன்பாக்ஸைப் பாருங்கள்.',
+  'pf_organNeedsAttention': '{organ} கவனம் தேவை',
+  'pf_organHighRisk': '{organ} அதிக ஆபத்தில்',
+  'sv_unitCm': 'செ.மீ',
+  'sv_unitKg': 'கிலோ',
+  'sv_labMustBePositive': '0-ஐ விட பெரிய எண்ணை உள்ளிடவும்.',
+  'sv_labNeedAllThree': 'FIB-4-க்கு மூன்று எண்களும் தேவை. அவை இல்லாமல் உங்கள் முடிவுகளில் FIB-4 இருக்காது.',
 };

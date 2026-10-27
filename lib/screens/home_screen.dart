@@ -12,7 +12,7 @@ import 'food_detail_sheet.dart';
 /// Home tab: the health check and today's check-in side by side, then food
 /// recommendations, health suggestions and FAQs (dummy data for now, see
 /// lib/data/home_content.dart).
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   final Profile profile;
   final VoidCallback onStartCheck;
 
@@ -31,15 +31,27 @@ class HomeScreen extends StatelessWidget {
   });
 
   @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  // Keep both cards' state (an unsaved log, meal picks) when the layout
+  // switches between stacked and side by side (rotation, split screen).
+  final _checkKey = GlobalKey();
+  final _dailyKey = GlobalKey<DailyCheckinCardState>();
+
+  @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final profile = widget.profile;
     final firstName = (profile.fullName ?? '').trim().split(' ').first;
 
     return RefreshIndicator(
-      // Reloads every card that listens for saved data.
+      // Reloads every card that listens for saved data, and waits for the
+      // daily card's reload so the spinner stops when it is done.
       onRefresh: () async {
         DataService.changes.value++;
-        await Future<void>.delayed(const Duration(milliseconds: 600));
+        await _dailyKey.currentState?.latestLoad;
       },
       child: ListView(
         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -63,11 +75,15 @@ class HomeScreen extends StatelessWidget {
             // Side by side on wide screens, stacked on phones.
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final check = _CheckCard(onStart: onStartCheck);
+                final check = _CheckCard(
+                  key: _checkKey,
+                  onStart: widget.onStartCheck,
+                );
                 final daily = DailyCheckinCard(
+                  key: _dailyKey,
                   profile: profile,
-                  isActive: isActive,
-                  back: back,
+                  isActive: widget.isActive,
+                  back: widget.back,
                 );
                 if (constraints.maxWidth < 620) {
                   return Column(
@@ -167,7 +183,7 @@ class _SectionTitle extends StatelessWidget {
 class _CheckCard extends StatefulWidget {
   final VoidCallback onStart;
 
-  const _CheckCard({required this.onStart});
+  const _CheckCard({super.key, required this.onStart});
 
   @override
   State<_CheckCard> createState() => _CheckCardState();

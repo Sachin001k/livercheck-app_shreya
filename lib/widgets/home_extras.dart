@@ -32,13 +32,18 @@ class _SpecialSurveyBannerState extends State<SpecialSurveyBanner> {
     super.dispose();
   }
 
+  /// Bumped on every [_load]; older loads that finish later are ignored.
+  int _loadId = 0;
+
   Future<void> _load() async {
+    final id = ++_loadId;
     try {
       final open = await RewardStore.openSurveys();
-      if (mounted) setState(() => _survey = open.isEmpty ? null : open.first);
+      if (!mounted || id != _loadId) return;
+      setState(() => _survey = open.isEmpty ? null : open.first);
     } catch (_) {
       // No banner if surveys can't be loaded; the Rewards tab shows errors.
-      if (mounted) setState(() => _survey = null);
+      if (mounted && id == _loadId) setState(() => _survey = null);
     }
   }
 
