@@ -22,6 +22,11 @@ if [ -d .vercel-web ]; then
 fi
 
 cd build/web
+# No saved link (e.g. a fresh clone): link to the existing "livrcheck"
+# project instead of letting Vercel create a new one.
+if [ ! -d .vercel ]; then
+  vercel link --yes --project livrcheck
+fi
 # Never upload secrets or build metadata with the static site.
 rm -f .env .env.local .env.*.local
 printf '.env*\n.vercel\n.gitignore\n.last_build_id\n' > .vercelignore
