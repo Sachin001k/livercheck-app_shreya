@@ -1,3 +1,5 @@
+import 'en_guide.dart';
+
 /// English text — the source for every other language.
 ///
 /// The key on the left is used by the code; only edit the text on the right.
@@ -1155,4 +1157,8 @@ const Map<String, String> en = {
   'sv_unitKg': 'kg',
   'sv_labMustBePositive': 'Please enter a number above 0.',
   'sv_labNeedAllThree': 'FIB-4 needs all three numbers. Without them, your results won\'t include it.',
+
+
+  // Liver guide (Guide tab) — see en_guide.dart.
+  ...enGuide,
 };

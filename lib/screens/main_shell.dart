@@ -3,12 +3,16 @@ import 'package:flutter/material.dart';
 import '../app_language.dart';
 import '../services/data_service.dart';
 import '../survey/health_survey_screen.dart';
+import '../learn/guide_content.dart';
+import '../learn/guide_store.dart';
+import '../learn/learn_screen.dart';
 import '../widgets/tab_back.dart';
 import 'home_screen.dart';
 import 'profile_screen.dart';
 import '../rewards/rewards_screen.dart';
 
-/// The signed-in app: Home, Check (health survey), Rewards and Profile tabs.
+/// The signed-in app: Home, Check (health survey), Guide, Rewards and
+/// Profile tabs.
 class MainShell extends StatefulWidget {
   final Profile profile;
   final VoidCallback onProfileChanged;
@@ -30,6 +34,13 @@ class _MainShellState extends State<MainShell> {
   final _homeBack = TabBack();
   final _checkBack = TabBack();
 
+  @override
+  void initState() {
+    super.initState();
+    // The Guide (and Home's FAQ) start with advice for the user's age.
+    guideAgeGroup.value = ageGroupFor(widget.profile.age);
+  }
+
   /// Android back: first the visible tab (close the daily log, previous
   /// question), then any other tab goes to Home. On Home the app closes.
   void _onBack(bool didPop, Object? _) {
@@ -47,6 +58,7 @@ class _MainShellState extends State<MainShell> {
     final titles = [
       context.t('appTitle'),
       context.t('pf_healthCheck'),
+      context.t('gd_tabTitle'),
       context.t('navRewards'),
       context.t('navProfile'),
     ];
@@ -72,25 +84,33 @@ class _MainShellState extends State<MainShell> {
               child: IndexedStack(
                 index: _index,
                 children: [
-                  HomeScreen(
-                    profile: widget.profile,
-                    onStartCheck: () => setState(() => _index = 1),
-                    isActive: _index == 0,
-                    back: _homeBack,
-                  ),
-                  HealthSurveyScreen(
-                    profile: widget.profile,
-                    onProfileChanged: widget.onProfileChanged,
-                    onOpenProfile: () => setState(() => _index = 3),
-                    isActive: _index == 1,
-                    back: _checkBack,
-                  ),
-                  const RewardsScreen(),
-                  ProfileScreen(
-                    profile: widget.profile,
-                    onProfileChanged: widget.onProfileChanged,
-                    onOpenCheck: () => setState(() => _index = 1),
-                  ),
+                  for (final (i, tab) in <Widget>[
+                    HomeScreen(
+                      profile: widget.profile,
+                      onStartCheck: () => setState(() => _index = 1),
+                      onOpenGuide: () => setState(() => _index = 2),
+                      isActive: _index == 0,
+                      back: _homeBack,
+                    ),
+                    HealthSurveyScreen(
+                      profile: widget.profile,
+                      onProfileChanged: widget.onProfileChanged,
+                      onOpenProfile: () => setState(() => _index = 4),
+                      isActive: _index == 1,
+                      back: _checkBack,
+                    ),
+                    LearnScreen(profile: widget.profile),
+                    const RewardsScreen(),
+                    ProfileScreen(
+                      profile: widget.profile,
+                      onProfileChanged: widget.onProfileChanged,
+                      onOpenCheck: () => setState(() => _index = 1),
+                    ),
+                  ].indexed)
+                    // Hidden tabs keep their state but stop their looping
+                    // animations, so they don't use the phone's time while
+                    // you scroll another tab.
+                    TickerMode(enabled: i == _index, child: tab),
                 ],
               ),
             ),
@@ -109,6 +129,11 @@ class _MainShellState extends State<MainShell> {
               icon: const Icon(Icons.monitor_heart_outlined),
               selectedIcon: const Icon(Icons.monitor_heart),
               label: context.t('navCheck'),
+            ),
+            NavigationDestination(
+              icon: const Icon(Icons.menu_book_outlined),
+              selectedIcon: const Icon(Icons.menu_book),
+              label: context.t('gd_navGuide'),
             ),
             NavigationDestination(
               icon: const Icon(Icons.emoji_events_outlined),

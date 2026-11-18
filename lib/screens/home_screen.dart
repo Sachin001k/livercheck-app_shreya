@@ -2,19 +2,26 @@ import 'package:flutter/material.dart';
 
 import '../app_language.dart';
 import '../daily/daily_checkin_card.dart';
-import '../data/home_content.dart';
+import '../data/home_content.dart' hide AgeGroup;
+import '../learn/guide_blocks.dart';
+import '../learn/guide_content.dart';
+import '../learn/learn_screen.dart';
+import '../survey/health_ui.dart';
 import '../services/data_service.dart';
 import '../theme.dart';
 import '../widgets/tab_back.dart';
 import '../widgets/home_extras.dart';
 import 'food_detail_sheet.dart';
 
-/// Home tab: the health check and today's check-in side by side, then food
-/// recommendations, health suggestions and FAQs (dummy data for now, see
-/// lib/data/home_content.dart).
+/// Home tab: the health check and today's check-in side by side, then the
+/// guide card, food cards (dummy data, lib/data/home_content.dart), the
+/// guidebook's 5 steps and FAQ.
 class HomeScreen extends StatefulWidget {
   final Profile profile;
   final VoidCallback onStartCheck;
+
+  /// Opens the Guide tab (hidden when null, e.g. in tests).
+  final VoidCallback? onOpenGuide;
 
   /// Whether Home is the tab on screen (for Android back handling).
   final bool isActive;
@@ -26,6 +33,7 @@ class HomeScreen extends StatefulWidget {
     super.key,
     required this.profile,
     required this.onStartCheck,
+    this.onOpenGuide,
     this.isActive = true,
     this.back,
   });
@@ -106,6 +114,11 @@ class _HomeScreenState extends State<HomeScreen> {
             padding: EdgeInsets.symmetric(horizontal: 16),
             child: TipOfTheDayCard(),
           ),
+          if (widget.onOpenGuide != null)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+              child: _GuideCard(onOpen: widget.onOpenGuide!),
+            ),
           _SectionTitle(context.t('foodSectionTitle')),
           SizedBox(
             // Grows with the phone's text size so card text isn't cut off.
@@ -123,33 +136,31 @@ class _HomeScreenState extends State<HomeScreen> {
               itemBuilder: (context, i) => _FoodCard(tip: foodTips[i]),
             ),
           ),
-          _SectionTitle(context.t('tipsSectionTitle')),
-          for (final tip in healthTips)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
-              child: _HealthTipCard(tip: tip),
-            ),
+          _SectionTitle(context.t('gd_homeStepsTitle')),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: GuideSteps(StepsBlock(fiveSteps), color: tealDark),
+          ),
           _SectionTitle(context.t('faqSectionTitle')),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Card(
-              margin: EdgeInsets.zero,
-              clipBehavior: Clip.antiAlias,
-              child: Column(
-                children: [
-                  for (final faq in faqs)
-                    ExpansionTile(
-                      shape: const Border(),
-                      title: Text(
-                        context.t(faq.questionKey),
-                        style: const TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                      children: [Text(context.t(faq.answerKey))],
-                    ),
-                ],
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // The guidebook FAQ for the chosen age group.
+                GuideFaq(
+                  FaqBlock({for (final g in AgeGroup.values) g: faqFor(g)}),
+                  onlySelected: true,
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => openGuideTopic(context, profile.id, 'faq'),
+                    icon: const Icon(Icons.menu_book_outlined),
+                    label: Text(context.t('gd_homeFaqMore')),
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 24),
@@ -258,16 +269,21 @@ class _CheckCardState extends State<_CheckCard>
             ),
             Expanded(
               child: Center(
-                child: AnimatedBuilder(
-                  animation: _float,
-                  builder: (_, child) => Transform.translate(
-                    offset: Offset(
-                      0,
-                      -8 * Curves.easeInOut.transform(_float.value),
+                // Own layer: the 🩺 bobs every frame, and without this the
+                // whole card (gradient + blurred shadow) repaints with it,
+                // which makes scrolling past it stutter.
+                child: RepaintBoundary(
+                  child: AnimatedBuilder(
+                    animation: _float,
+                    builder: (_, child) => Transform.translate(
+                      offset: Offset(
+                        0,
+                        -8 * Curves.easeInOut.transform(_float.value),
+                      ),
+                      child: child,
                     ),
-                    child: child,
+                    child: const Text('🩺', style: TextStyle(fontSize: 88)),
                   ),
-                  child: const Text('🩺', style: TextStyle(fontSize: 88)),
                 ),
               ),
             ),
@@ -402,48 +418,48 @@ class _FoodCard extends StatelessWidget {
   }
 }
 
-class _HealthTipCard extends StatelessWidget {
-  final HealthTip tip;
-
-  const _HealthTipCard({required this.tip});
+/// Opens the Guide tab (the liver guidebook).
+class _GuideCard extends StatelessWidget {
+  final VoidCallback onOpen;
+  const _GuideCard({required this.onOpen});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: EdgeInsets.zero,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 44,
-              height: 44,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: mintCard,
-                borderRadius: BorderRadius.circular(12),
+    return SurfaceCard(
+      padding: EdgeInsets.zero,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: onOpen,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              const EmojiBadge('📖', color: Color(0xFF2F6FD6), size: 52),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      context.t('gd_homeCardTitle'),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      context.t('gd_homeCardBody'),
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-              child: Text(tip.emoji, style: const TextStyle(fontSize: 22)),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    context.t(tip.titleKey),
-                    style: const TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    context.t(tip.bodyKey),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ],
+              const Icon(Icons.chevron_right, color: tealDark),
+            ],
+          ),
         ),
       ),
     );

@@ -414,32 +414,35 @@ class _DailyCheckinCardState extends DailyCheckinCardState
                       ),
                     ],
                   )
-                : ScaleTransition(
-                    scale: _pulseScale,
-                    child: FilledButton(
-                      onPressed: _busy ? null : _checkIn,
-                      style: FilledButton.styleFrom(
-                        shape: const CircleBorder(),
-                        padding: const EdgeInsets.all(34),
-                        backgroundColor: tealDark,
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('👋', style: TextStyle(fontSize: 30)),
-                          const SizedBox(height: 4),
-                          Text(
-                            context.t('dl_checkIn'),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w800,
-                              fontSize: 15,
+                // Own layer so the pulse doesn't repaint the whole card.
+                : RepaintBoundary(
+                    child: ScaleTransition(
+                      scale: _pulseScale,
+                      child: FilledButton(
+                        onPressed: _busy ? null : _checkIn,
+                        style: FilledButton.styleFrom(
+                          shape: const CircleBorder(),
+                          padding: const EdgeInsets.all(34),
+                          backgroundColor: tealDark,
+                        ),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('👋', style: TextStyle(fontSize: 30)),
+                            const SizedBox(height: 4),
+                            Text(
+                              context.t('dl_checkIn'),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
                             ),
-                          ),
-                          const Text(
-                            '+$coinsForCheckin 🪙',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ],
+                            const Text(
+                              '+$coinsForCheckin 🪙',
+                              style: TextStyle(fontSize: 12),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
@@ -629,14 +632,21 @@ class _ItemPage extends StatelessWidget {
           .toDouble(),
     );
 
-    // Scrolls when a two-line title or large text doesn't fit the card's
-    // height; otherwise stays centred as before.
+    // Shrinks a little when a two-line title or large text doesn't fit the
+    // card's height; otherwise stays centred at full size. Not a scroll
+    // view: an inner vertical scroll here would catch the finger and stop
+    // the Home page from scrolling.
     return LayoutBuilder(
-      builder: (context, constraints) => SingleChildScrollView(
+      builder: (context, constraints) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: 4),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: constraints.maxHeight),
-          child: _body(context, cs, lang, hint, skipped, v, progress, set),
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: SizedBox(
+              width: constraints.maxWidth - 8,
+              child: _body(context, cs, lang, hint, skipped, v, progress, set),
+            ),
+          ),
         ),
       ),
     );

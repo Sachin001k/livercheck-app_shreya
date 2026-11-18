@@ -42,7 +42,9 @@ packages `supabase_flutter`, `url_launcher`.
 | Home: health check card + daily check-in card | ✅ Built |
 | Meal picker for calories | ✅ Built |
 | Polish: skeletons, friendly errors, large text, haptics | ✅ Built |
-| Home: food cards with detail pop-ups, tips, FAQ | ✅ Built · dummy content |
+| Home: food cards with detail pop-ups | ✅ Built · dummy content |
+| **Guide tab** (liver guidebook, 6 chapters, 27 topics, age groups) | ✅ Built 17 Nov 2026 · English only · challenge/plan saved on device (preview) |
+| Home: guide card, 5 steps, FAQ, tip of the day — from the guidebook | ✅ Built 17 Nov 2026 |
 | Health check survey + results | ✅ Built · saving confirmed (bug fixed) |
 | Profile: score, coins, streak, Every day, badges | ✅ Built |
 | Coins & reward rules (server-checked) | ✅ Built |
@@ -159,6 +161,7 @@ main.dart ── OnboardingPrefs.init ── Supabase.initialize (if env present
            └─ ready .................. MainShell (bottom tabs)
                                         ├─ Home     HomeScreen
                                         ├─ Check    HealthSurveyScreen
+                                        ├─ Guide    LearnScreen → ChapterScreen → TopicScreen
                                         ├─ Rewards  RewardsScreen
                                         └─ Profile  ProfileScreen ── ⚙️ SettingsScreen
 ```
@@ -188,7 +191,13 @@ main.dart ── OnboardingPrefs.init ── Supabase.initialize (if env present
 | `lib/screens/home_screen.dart` | Greeting, liver-risk card + daily check-in card, food cards, tips, FAQ |
 | `lib/screens/food_detail_sheet.dart` | Food pop-up (nutrition, safe amounts, benefits, risks, swaps, precautions) |
 | `lib/screens/profile_screen.dart` | Header, score ring, streak, stats, score chart, Every day, activity grid, badges |
-| `lib/data/home_content.dart` | **Dummy content**: 8 foods (with full details), 5 health tips, 6 FAQs |
+| `lib/data/home_content.dart` | **Dummy content**: 8 foods (with full details); old tips/FAQ lists now unused |
+| `lib/learn/guide_content.dart` | **Guidebook content structure**: chapters → topics → blocks (text, key message, cards, compare, stages, info, age advice, tests, swaps, myths, FAQ, steps, sources, checklist, tools); `AgeGroup` (<18 / 18–64 / 65+); `fiveSteps`, `faqFor()`, `guideTips`, `challengeHabits`, `planFields` |
+| `lib/learn/guide_blocks.dart` | Draws each block type; `AgeGroupChips`, `InfoBox`, `GuideFaq`, `GuideSteps`, `EmojiBadge` |
+| `lib/learn/guide_tools.dart` | Risk checklist, 7-day challenge, personal action plan |
+| `lib/learn/guide_store.dart` | `guideAgeGroup` notifier; **preview** storage of challenge/plan in `shared_preferences` (per user) |
+| `lib/learn/learn_screen.dart` | Guide tab, `ChapterScreen`, `TopicScreen` (Next →), `openGuideTopic()` |
+| `lib/translations/en_guide.dart` | English guidebook text (`gd_` keys), merged into `en.dart` |
 | `lib/survey/questions.dart` | Health check questions (15, one conditional) |
 | `lib/survey/assess.dart` | Scoring: organs, overall score, tests, plan; FIB-4; JSON (de)serialise |
 | `lib/survey/health_survey_screen.dart` | One-question-per-screen survey, blood report step, save |
@@ -470,6 +479,15 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 - ✅ Migrations 3, 4 & 5 applied
 - 🟡 Phone OTP (needs Twilio enabled) · Google (needs OAuth client)
 
+### Guide (guidebook) — 17 Nov 2026
+- ✅ Guide tab: all guidebook content (chapters 1–6), age-group switch, risk checklist, 7-day challenge, action plan
+- ✅ Home uses the guidebook's 5 steps, FAQ (by age) and facts as tip of the day
+- ⬜ User reviews the UI → then: move challenge + plan to Supabase (migration, coins)
+- ⬜ "My tests" follow-up record (date, test, result, next appointment) — placeholder in 3.5
+- ⬜ Organ stage animations (liver first: healthy → steatosis → MASH → fibrosis → cirrhosis, reversible)
+- ⬜ Daily targets by age group per the guidebook (children 60 min exercise, sleep 9–12 h / 8–10 h, water 1.5–2 L)
+- ⬜ Translate `gd_` keys into the 8 languages (after content sign-off)
+
 ### Home
 - ✅ Liver-risk card + daily check-in card side by side
 - ✅ Food cards with full detail pop-ups (8/8)
@@ -542,7 +560,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 ---
 
 ## 10. Testing
-`flutter test` — 71 tests:
+`flutter test` — 77 tests:
 | File | Covers |
 |---|---|
 | `fib4_test.dart` | FIB-4 formula, tiers, BMI, invalid input |
@@ -556,6 +574,7 @@ Legend: ✅ done · 🟡 in progress / needs checking · ⬜ not started
 | `phone_layout_test.dart` | 360×640 phone at 1.0/1.5/2.0× text: Profile stat cards, Rewards badges, `BigButton` don't overflow |
 | `home_fixes_test.dart` | per-item scores (bars), daily card keeps state across the 620 px layout switch |
 | `reward_store_test.dart` | malformed special surveys skipped, numeric option values, `meals` always sent |
+| `guide_test.dart` | every guide key has English text; age groups; challenge save round trip; every topic × age group lays out at 360 px, 1.0× and 1.5× text |
 | `rewards_test.dart` | badge thresholds, weekly summary maths, special survey JSON parsing |
 
 Notes: Supabase isn't initialised in tests, so saves fail there (the UI
@@ -587,6 +606,7 @@ screenshot with headless Chrome, then **delete the preview files**.
 | Welcome slides show again | Expected on a new device/browser or after clearing site data (flag is per device) |
 | Daily check-in card: "null is not a subtype of String" after a special survey | Fixed 1 Oct: special survey coins have `day = null`; `sumCoins()` skips them per day but counts them in the total (`daily_store_test.dart`) |
 | Cards/text stretch when pulling past the top/bottom | Android 12+ stretch effect — turned off by `AppScrollBehavior` (`theme.dart`). If you still see it, you're running an old copy (e.g. `com.example.livrcheck_app`) — uninstall it |
+| Scrolling sometimes sticks / sometimes flies (emulator) | Mostly debug mode + mouse/trackpad input on the emulator — judge smoothness with `flutter run --release` or on a real phone. Fixed 17 Nov: daily-log pages no longer have an inner vertical scroll (it caught the finger), looping 🩺/👋 animations are on their own `RepaintBoundary`, hidden tabs are paused with `TickerMode` |
 | Ripple not visible / "ListTile … DecoratedBox" assertion | Put ListTiles inside `SurfaceCard` (it provides a Material) |
 
 ---
@@ -600,6 +620,7 @@ screenshot with headless Chrome, then **delete the preview files**.
 - FIB-4 cut-offs 1.3 / 2.67 (2.0 at 65+) — the standard NAFLD cut-offs —
   everywhere (the old 3.25 is gone, 24 Oct). BMI categories use Asian
   cut-offs 23 / 25 on Profile too.
+- The fatty liver guidebook is the source for all health education content (17 Nov 2026). Guide is a 5th tab between Check and Rewards.
 - Habit ticks + XP replaced by the daily log + coins (one daily loop, one
   currency). Streak = days with check-in or log.
 - Coin amounts set and verified server-side (trigger), not trusted from the app.
@@ -611,6 +632,8 @@ screenshot with headless Chrome, then **delete the preview files**.
   so it never overwrites what the user set.
 
 ## 13. Known issues
+- **Guidebook is the content source** ("Kanav Jain _Guidebook" PDF, 31 pages). Fixed its typos when copying (p23). Skipped the editor's note on p20 ("Check current Indian approvals…"). Its contents page lists pages 5–32 but pages are numbered 1–26.
+- Guide 7-day challenge and action plan are saved **on the device only** (preview) — lost on reinstall.
 - **Decision pending — children:** the app has no age limit, but the health
   check is built for adults (age slider 18–90; scoring validated for
   adults). Option: let under-18s use the daily log/food/coins and show
@@ -641,3 +664,5 @@ screenshot with headless Chrome, then **delete the preview files**.
 - Create animation controllers in `initState`; never return a Future from a
   `setState` callback.
 - **Update this file** (status, tracker, migrations table) with every change.
+- Inside a scrolling page, don't nest another *vertical* scroll view (it
+  steals drags); wrap repeating animations in a `RepaintBoundary`.
